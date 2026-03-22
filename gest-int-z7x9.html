@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#0f2444"/>
+<title>Gestione Prenotazioni</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#eef2f7;font-family:'DM Sans','Segoe UI',system-ui,sans-serif;-webkit-tap-highlight-color:transparent;}
+input,select,textarea,button{font-family:inherit;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px;}
+.tab-bar{background:#fff;display:flex;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:30;}
+.tab-btn{flex:1;padding:12px 0;border:none;background:transparent;font-size:11px;font-weight:800;cursor:pointer;border-bottom:3px solid transparent;letter-spacing:.6px;text-transform:uppercase;}
+.tab-btn.active{color:#1d4ed8;border-bottom-color:#1d4ed8;background:#f0f6ff;}
+.tab-btn:not(.active){color:#6b7280;}
+.card{background:#fff;border-radius:13px;padding:13px 15px;box-shadow:0 1px 5px rgba(0,0,0,.07);cursor:pointer;margin-bottom:9px;}
+.badge{border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap;}
+.btn{border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:flex-end;justify-content:center;}
+.modal-box{background:#fff;border-radius:20px 20px 0 0;padding:18px 18px 36px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;box-shadow:0 -4px 30px rgba(0,0,0,.2);}
+.modal-handle{width:36px;height:4px;background:#d1d5db;border-radius:4px;margin:0 auto 14px;}
+.fl{font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.inp{width:100%;padding:10px 12px;border-radius:9px;border:1.5px solid #d1d5db;font-size:13px;background:#f9fafb;outline:none;color:#111827;}
+.inp.err{border-color:#ef4444;background:#fff5f5;}
+textarea.inp{resize:vertical;}
+/* Date input – click tutta cella */
+.date-inp-wrap{position:relative;border-radius:9px;border:1.5px solid #d1d5db;background:#f9fafb;overflow:hidden;cursor:pointer;}
+.date-inp-wrap.err{border-color:#ef4444;background:#fff5f5;}
+.date-inp-wrap input[type=date]{width:100%;padding:10px 12px;border:none;background:transparent;font-size:13px;outline:none;color:#111827;cursor:pointer;}
+.date-inp-wrap input[type=date]::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
+.chip{padding:5px 10px;border-radius:8px;font-size:11px;cursor:pointer;border:1.5px solid #d1d5db;background:#fff;color:#374151;}
+.chip.sel{border-color:#1d4ed8;background:#eff6ff;color:#1d4ed8;font-weight:700;}
+/* GANTT – doppia scrollbar: specchio top */
+.gantt-scroll-top{overflow-x:auto;overflow-y:hidden;}
+.gantt-scroll-top-inner{height:1px;}/* larghezza viene impostata via JS */
+.gantt-outer{overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 400px);}
+.fab-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.97);border-top:1px solid #e5e7eb;padding:10px 16px;display:flex;justify-content:center;gap:10px;}
+.fab{border:none;border-radius:14px;padding:12px 22px;font-size:13px;font-weight:700;cursor:pointer;}
+.sd{padding:7px 10px;border-radius:8px;border:1.5px solid #d1d5db;font-size:11px;background:#f9fafb;cursor:pointer;}
+.tag{background:#f3f4f6;border-radius:6px;padding:2px 7px;font-size:10px;color:#374151;}
+.tag-b{background:#eff6ff;color:#1d4ed8;border-radius:6px;padding:2px 8px;font-size:11px;}
+.tag-g{background:#d1fae5;color:#065f46;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;}
+.ibox{border-radius:9px;padding:9px 11px;background:#f9fafb;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;}
+.row{display:flex;justify-content:space-between;align-items:center;}
+.col{display:flex;flex-direction:column;gap:9px;}
+.kpi{background:#fff;border-radius:13px;padding:14px;box-shadow:0 1px 5px rgba(0,0,0,.07);}
+.kpi-val{font-size:22px;font-weight:800;color:#111827;}
+.kpi-lbl{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+.bar-wrap{background:#e5e7eb;border-radius:4px;height:8px;overflow:hidden;margin-top:4px;}
+.bar-fill{height:100%;border-radius:4px;transition:width .4s;}
+.section-hd{font-size:13px;font-weight:800;color:#1e3a5f;margin:16px 0 8px;}
+@media print{.no-print{display:none!important;}body{background:#fff;}}
+
+/* ── LOGIN ── */
+#login-screen{position:fixed;inset:0;background:linear-gradient(160deg,#0f2444 0%,#1d4ed8 100%);display:flex;align-items:center;justify-content:center;z-index:9999;padding:24px;}
+.login-box{background:#fff;border-radius:22px;padding:36px 28px 32px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-logo-icon{font-size:38px;margin-bottom:8px;}
+.login-title{font-size:20px;font-weight:800;color:#0f2444;margin-bottom:4px;}
+.login-sub{font-size:12px;color:#6b7280;}
+.login-label{font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;margin-top:16px;display:block;}
+.login-inp{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid #d1d5db;font-size:14px;background:#f9fafb;outline:none;color:#111827;transition:border .2s;}
+.login-inp:focus{border-color:#1d4ed8;background:#fff;}
+.login-inp.err{border-color:#ef4444;background:#fff5f5;}
+.login-btn{width:100%;margin-top:22px;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#0f2444,#1d4ed8);color:#fff;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.3px;box-shadow:0 4px 14px rgba(29,78,216,.4);}
+.login-btn:active{opacity:.9;}
+.login-err{margin-top:12px;background:#fee2e2;color:#dc2626;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:600;text-align:center;}
+</style>
+</head>
+<body>
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">🏨</div>
+      <div class="login-title">Gestione Prenotazioni</div>
+      <div class="login-sub">Accedi per continuare</div>
+    </div>
+    <label class="login-label" for="l-email">Email</label>
+    <input id="l-email" class="login-inp" type="email" placeholder="La tua email" autocomplete="email"/>
+    <label class="login-label" for="l-pwd">Password</label>
+    <input id="l-pwd" class="login-inp" type="password" placeholder="La tua password" autocomplete="current-password"/>
+    <div id="login-err" class="login-err" style="display:none">Email o password non corretti.</div>
+    <button class="login-btn" onclick="doLogin()">Accedi</button>
+  </div>
+</div>
+<div id="app" style="display:none"></div>
+<script>
+function doLogin(){
+  var email=document.getElementById('l-email').value.trim();
+  var pwd=document.getElementById('l-pwd').value;
+  var errEl=document.getElementById('login-err');
+  var ei=document.getElementById('l-email');
+  var pi=document.getElementById('l-pwd');
+  if(email==='incomingzoom@gmail.com' && pwd==='Porticciolo2026!'){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='';
+    ei.classList.remove('err');pi.classList.remove('err');errEl.style.display='none';
+  } else {
+    ei.classList.add('err');pi.classList.add('err');
+    errEl.style.display='block';
+    pi.value='';
+  }
+}
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter'){
+    var ls=document.getElementById('login-screen');
+    if(ls&&ls.style.display!=='none') doLogin();
+  }
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script>
+'use strict';
+const {useState,useMemo,useEffect,useRef,createElement:h,Fragment}=React;
+
+/* ── CONSTANTS ── */
+const SOURCES=["Booking.com","Airbnb","Diretto"];
+const PAY_METHODS=["Carta di credito","Bonifico","Contanti","PayPal","Stripe","Altro"];
+const STATUSES=["Confermata","In attesa","Cancellata"];
+const TIPOLOGIE=["Appartamenti","Villa Paola","Glamping"];
+const SERVIZI=["WiFi","Piscina","Parcheggio","Aria condizionata","Riscaldamento","Lavastoviglie","Lavatrice","TV","Terrazza","Giardino","Barbecue","Portineria","Ascensore","Vista mare","Vista montagna","Spiaggia privata","Palestra","Sauna","Jacuzzi","Biciclette"];
+const SPESE_CAT=["Utenze (luce/gas/acqua)","Manutenzione ordinaria","Manutenzione straordinaria","Pulizie straordinarie","Tasse/IMU/TARI","Assicurazione","Arredamento/Attrezzatura","Lavanderia","Giardinaggio","Condominio","Altro"];
+const MONTHS=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+const MONTHS_SHORT=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+const SC={"Confermata":{bg:"#d1fae5",text:"#065f46",dot:"#10b981",bar:"#10b981"},"In attesa":{bg:"#fef3c7",text:"#92400e",dot:"#f59e0b",bar:"#f59e0b"},"Cancellata":{bg:"#fee2e2",text:"#991b1b",dot:"#ef4444",bar:"#ef4444"}};
+const SRCICO={"Booking.com":"🔵","Airbnb":"🔴","Diretto":"🟢"};
+const si=s=>SRCICO[s]||"📌";
+
+/* ── INITIAL DATA ── */
+const S0=[
+  {id:"s01",name:"Struttura 01",tipologia:"Appartamenti",posti:4,camere:2,animali:true,servizi:["WiFi","Aria condizionata","Parcheggio"],note:"Piano terra con giardino privato."},
+  {id:"s02",name:"Struttura 02",tipologia:"Villa Paola",posti:8,camere:4,animali:false,servizi:["WiFi","Piscina","Barbecue","Giardino","Parcheggio"],note:"Minimo 5 notti in alta stagione."},
+  {id:"s03",name:"Struttura 03",tipologia:"Glamping",posti:2,camere:1,animali:false,servizi:["WiFi","Aria condizionata"],note:"Check-in entro le 20:00."},
+  {id:"s04",name:"Struttura 04",tipologia:"Appartamenti",posti:4,camere:2,animali:true,servizi:["WiFi","Lavatrice","TV"],note:""},
+  {id:"s05",name:"Struttura 05",tipologia:"Villa Paola",posti:6,camere:3,animali:true,servizi:["WiFi","Piscina","Terrazza","Parcheggio","Barbecue"],note:"Vista panoramica."},
+  ...[...Array(45)].map((_,i)=>({id:"s"+String(i+6).padStart(2,"0"),name:"Struttura "+String(i+6).padStart(2,"0"),tipologia:TIPOLOGIE[i%TIPOLOGIE.length],posti:[2,4,4,6,8][i%5],camere:[1,2,2,3,4][i%5],animali:i%3===0,servizi:SERVIZI.slice(0,(i%4)+2),note:""}))
+];
+
+/* acconti è un array [{importo,metodo,data}] */
+const B0=[
+  {id:1,structure:"s01",client:"Mario Rossi",checkin:"2026-03-12",checkout:"2026-03-16",persons:2,room:"101",status:"Confermata",source:"Booking.com",
+   acconti:[{importo:120,metodo:"Bonifico",data:"2026-02-10"},{importo:360,metodo:"Bonifico",data:"2026-03-11"}],
+   total:480,notes:"Vista mare",animali:false,nAnimali:0},
+  {id:2,structure:"s01",client:"Laura Bianchi",checkin:"2026-03-18",checkout:"2026-03-22",persons:4,room:"205",status:"In attesa",source:"Airbnb",
+   acconti:[],total:920,notes:"Culla bambino",animali:false,nAnimali:0},
+  {id:3,structure:"s02",client:"Carlos Mendez",checkin:"2026-03-14",checkout:"2026-03-17",persons:5,room:"Apt 3",status:"In attesa",source:"Diretto",
+   acconti:[],total:750,notes:"Gruppo",animali:true,nAnimali:1},
+  {id:4,structure:"s03",client:"Ahmed Al-Rashid",checkin:"2026-03-11",checkout:"2026-03-14",persons:2,room:"302",status:"Confermata",source:"Diretto",
+   acconti:[{importo:100,metodo:"Bonifico",data:"2026-02-15"},{importo:260,metodo:"Bonifico",data:"2026-03-11"}],
+   total:360,notes:"",animali:false,nAnimali:0},
+  {id:5,structure:"s03",client:"Giulia Verdi",checkin:"2026-03-20",checkout:"2026-03-25",persons:2,room:"301",status:"Confermata",source:"Booking.com",
+   acconti:[{importo:150,metodo:"Carta di credito",data:"2026-02-20"}],
+   total:600,notes:"",animali:false,nAnimali:0},
+  {id:6,structure:"s05",client:"Sophia Muller",checkin:"2026-03-15",checkout:"2026-03-20",persons:3,room:"Villa A",status:"Confermata",source:"Airbnb",
+   acconti:[{importo:400,metodo:"Carta di credito",data:"2026-02-01"},{importo:850,metodo:"Carta di credito",data:"2026-03-15"}],
+   total:1250,notes:"Allergia gatti",animali:false,nAnimali:0},
+  {id:7,structure:"s07",client:"Jean Dubois",checkin:"2026-03-11",checkout:"2026-03-13",persons:1,room:"S05",status:"Cancellata",source:"Diretto",
+   acconti:[{importo:50,metodo:"Carta di credito",data:"2026-01-20"}],
+   total:180,notes:"Rimborso",animali:false,nAnimali:0},
+  {id:8,structure:"s07",client:"Rania Hassan",checkin:"2026-03-18",checkout:"2026-03-23",persons:2,room:"S03",status:"Confermata",source:"Booking.com",
+   acconti:[{importo:100,metodo:"Bonifico",data:"2026-02-28"}],
+   total:450,notes:"",animali:true,nAnimali:2},
+  {id:9,structure:"s08",client:"Yuki Tanaka",checkin:"2026-03-25",checkout:"2026-03-29",persons:2,room:"210",status:"Confermata",source:"Diretto",
+   acconti:[{importo:160,metodo:"Bonifico",data:"2026-03-01"},{importo:480,metodo:"Bonifico",data:"2026-03-20"}],
+   total:640,notes:"",animali:false,nAnimali:0},
+  {id:10,structure:"s12",client:"Elena Petrov",checkin:"2026-03-20",checkout:"2026-03-27",persons:2,room:"Suite 1",status:"Confermata",source:"Booking.com",
+   acconti:[{importo:350,metodo:"Bonifico",data:"2026-02-10"},{importo:500,metodo:"Bonifico",data:"2026-03-01"},{importo:550,metodo:"Carta di credito",data:"2026-03-20"}],
+   total:1400,notes:"Anniversary",animali:false,nAnimali:0},
+  {id:11,structure:"s01",client:"Marco Ferrari",checkin:"2026-04-05",checkout:"2026-04-10",persons:2,room:"101",status:"Confermata",source:"Diretto",
+   acconti:[{importo:200,metodo:"Bonifico",data:"2026-03-01"},{importo:300,metodo:"Bonifico",data:"2026-04-05"}],
+   total:500,notes:"",animali:false,nAnimali:0},
+  {id:12,structure:"s02",client:"Anna Boni",checkin:"2026-04-12",checkout:"2026-04-19",persons:6,room:"Villa",status:"Confermata",source:"Airbnb",
+   acconti:[{importo:600,metodo:"Carta di credito",data:"2026-03-10"}],
+   total:1800,notes:"",animali:false,nAnimali:0},
+  {id:13,structure:"s05",client:"Luca Esposito",checkin:"2026-05-01",checkout:"2026-05-08",persons:4,room:"A",status:"Confermata",source:"Booking.com",
+   acconti:[{importo:400,metodo:"Bonifico",data:"2026-03-20"},{importo:700,metodo:"Bonifico",data:"2026-05-01"}],
+   total:1100,notes:"",animali:true,nAnimali:1},
+];
+
+/* ── HELPERS ── */
+const toD=s=>new Date(s+"T00:00:00");
+const ds=d=>d.toISOString().slice(0,10);
+const TODAY=ds(new Date());
+const fmtS=d=>d?toD(d).toLocaleDateString("it-IT",{day:"2-digit",month:"short"}):"—";
+const fmtL=d=>d?toD(d).toLocaleDateString("it-IT",{day:"2-digit",month:"long",year:"numeric"}):"—";
+const nts=(a,b)=>Math.round((toD(b)-toD(a))/86400000);
+const eur=n=>"€ "+(n||0).toLocaleString("it-IT",{minimumFractionDigits:0,maximumFractionDigits:0});
+const totalPagato=b=>(b.acconti||[]).reduce((s,a)=>s+(+a.importo||0),0);
+/* saldato = confermata e pagato >= totale */
+const isSaldo=b=>b.status==="Confermata"&&totalPagato(b)>=(b.total||0)&&(b.total||0)>0;
+/* costi agenzia: l'utente inserisce valori positivi, noi li trattiamo come uscite (negativo) */
+const costoVal=v=>v!==""&&v!==undefined&&v!==null?-Math.abs(+v||0):0;
+const totalCostiAgenzia=b=>costoVal(b.commPortali)+costoVal(b.costiPulizie)+costoVal(b.altriCostiImporto);
+/* ricavo lordo = total - tassa soggiorno (la tassa va restituita al Comune) */
+const ricavoLordo=b=>(b.total||0)-(+b.tassaSoggiorno||0);
+/* guadagno netto = ricavo lordo + costi agenzia (negativi) */
+const guadagnoNetto=b=>ricavoLordo(b)+totalCostiAgenzia(b);
+/* parziale = almeno 1 acconto versato ma non completamente saldato */
+const isParz=b=>b.status!=="Cancellata"&&(b.acconti||[]).length>0&&!isSaldo(b);
+
+function emSt(){return{id:"",name:"",tipologia:"Appartamenti",posti:2,camere:1,animali:false,servizi:[],note:"",localita:""};}
+function emBk(ss){return{structure:ss[0]?.id||"",client:"",telefono:"",email:"",checkin:"",checkout:"",persons:"",room:"",status:"In attesa",source:SOURCES[0],acconti:[],prezzoApp:"",tassaSoggiorno:"",supplAria:"",supplBiancheria:"",supplAnimali:"",total:0,notes:"",animali:false,nAnimali:0,commPortali:"",costiPulizie:"",altriCostiDesc:"",altriCostiImporto:""};}
+function emAcconto(){return{importo:"",metodo:PAY_METHODS[0],data:""};}
+
+/* ── FIREBASE SYNC ── */
+function loadData(){
+  try{
+    const s=localStorage.getItem("prenota_structs"),b=localStorage.getItem("prenota_bookings"),sp=localStorage.getItem("prenota_spese");
+    return{structs:s?JSON.parse(s):S0,bookings:b?JSON.parse(b):B0,spese:sp?JSON.parse(sp):[]};
+  }catch(e){return{structs:S0,bookings:B0,spese:[]};}
+}
+
+/* flag per evitare loop: non salvare su Firebase i dati che arrivano DA Firebase */
+
+function saveData(s,b,sp){
+  if(_fbUpdating)return; /* ignora salvataggi causati da aggiornamenti Firebase */
+  try{localStorage.setItem("prenota_structs",JSON.stringify(s));localStorage.setItem("prenota_bookings",JSON.stringify(b));localStorage.setItem("prenota_spese",JSON.stringify(sp||[]));}catch(e){}
+  try{
+    db.collection("gestionale").doc("structs").set({data:s});
+    db.collection("gestionale").doc("bookings").set({data:b});
+    db.collection("gestionale").doc("spese").set({data:sp||[]});
+  }catch(e){console.warn("Firebase save error:",e);}
+}
+
+function useFirebaseSync(setStructs,setBookings,setSpese){
+  useEffect(()=>{
+    let unsub1,unsub2,unsub3;
+    try{
+      unsub1=db.collection("gestionale").doc("structs").onSnapshot({includeMetadataChanges:false},snap=>{
+        if(snap.exists&&snap.data()?.data&&!snap.metadata.hasPendingWrites){
+          _fbUpdating=true;
+          setStructs(snap.data().data);
+          try{localStorage.setItem("prenota_structs",JSON.stringify(snap.data().data));}catch(e){}
+          _fbUpdating=false;
+        }
+      });
+      unsub2=db.collection("gestionale").doc("bookings").onSnapshot({includeMetadataChanges:false},snap=>{
+        if(snap.exists&&snap.data()?.data&&!snap.metadata.hasPendingWrites){
+          _fbUpdating=true;
+          setBookings(snap.data().data);
+          try{localStorage.setItem("prenota_bookings",JSON.stringify(snap.data().data));}catch(e){}
+          _fbUpdating=false;
+        }
+      });
+      unsub3=db.collection("gestionale").doc("spese").onSnapshot({includeMetadataChanges:false},snap=>{
+        if(snap.exists&&snap.data()?.data&&!snap.metadata.hasPendingWrites){
+          _fbUpdating=true;
+          setSpese(snap.data().data);
+          try{localStorage.setItem("prenota_spese",JSON.stringify(snap.data().data));}catch(e){}
+          _fbUpdating=false;
+        }
+      });
+    }catch(e){console.warn("Firebase sync error:",e);}
+    return()=>{if(unsub1)unsub1();if(unsub2)unsub2();if(unsub3)unsub3();};
+  },[]);
+}
+
+/* ── PDF ── */
+function printBooking(b,sName){
+  const n=nts(b.checkin,b.checkout),paid=totalPagato(b),rest=(b.total||0)-paid;
+  const accontiRows=(b.acconti||[]).map((a,i)=>`<div class="rw"><span>Pagamento ${i+1}${a.data?" · "+fmtS(a.data):""}${a.metodo?" · "+a.metodo:""}</span><span>€ ${(+a.importo||0).toLocaleString("it-IT")}</span></div>`).join("");
+  const html=`<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"/><title>Prenotazione</title>
+  <style>body{font-family:'Segoe UI',sans-serif;padding:30px;color:#111;max-width:700px;margin:0 auto;}h1{font-size:22px;color:#1d4ed8;margin-bottom:4px;}.sub{color:#6b7280;font-size:13px;margin-bottom:24px;}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}.box{background:#f9fafb;border-radius:8px;padding:10px 12px;}.lbl{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;margin-bottom:2px;}.val{font-size:14px;font-weight:600;}.pay{background:#f0fdf4;border-radius:8px;padding:14px;margin-bottom:20px;}.pay h3{color:#065f46;font-size:13px;margin-bottom:10px;}.rw{display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;}.tot{border-top:2px solid #e5e7eb;margin-top:8px;padding-top:8px;font-weight:800;font-size:15px;}@media print{body{padding:0;}}</style></head><body>
+  <h1>${b.client}</h1>
+  <div class="sub">🏨 ${sName} &nbsp;·&nbsp; Camera: ${b.room||"—"} &nbsp;·&nbsp; <b>${b.status}</b>${isSaldo(b)?' &nbsp;<b style="color:#059669">✅ SALDATO</b>':""}${b.telefono?` &nbsp;·&nbsp; 📞 ${b.telefono}`:""}${b.email?` &nbsp;·&nbsp; ✉️ ${b.email}`:""}</div>
+  <div class="grid">
+    <div class="box"><div class="lbl">Check-in</div><div class="val">${fmtL(b.checkin)}</div></div>
+    <div class="box"><div class="lbl">Check-out</div><div class="val">${fmtL(b.checkout)}</div></div>
+    <div class="box"><div class="lbl">Notti</div><div class="val">${n}</div></div>
+    <div class="box"><div class="lbl">Persone</div><div class="val">${b.persons}</div></div>
+    <div class="box"><div class="lbl">Provenienza</div><div class="val">${si(b.source)} ${b.source}</div></div>
+    ${b.animali?`<div class="box"><div class="lbl">Animali</div><div class="val">🐾 ${b.nAnimali}</div></div>`:""}
+  </div>
+  <div class="pay"><h3>💰 Pagamenti</h3>
+    <div class="rw"><span>Totale soggiorno</span><strong>€ ${(b.total||0).toLocaleString("it-IT")}</strong></div>
+    ${accontiRows}
+    <div class="rw tot"><span>Totale pagato</span><span style="color:#059669">€ ${paid.toLocaleString("it-IT")}</span></div>
+    ${rest>0?`<div class="rw" style="color:#dc2626"><span>Da saldare</span><strong>€ ${rest.toLocaleString("it-IT")}</strong></div>`:`<div class="rw" style="color:#059669"><span>Residuo</span><strong>✅ Completato</strong></div>`}
+  </div>
+  ${b.notes?`<div style="background:#fffbeb;border-radius:8px;padding:10px 12px;font-size:13px;">📝 <b>Note:</b> ${b.notes}</div>`:""}
+  <div style="font-size:10px;color:#9ca3af;margin-top:20px;border-top:1px solid #e5e7eb;padding-top:10px;">Generato il ${new Date().toLocaleDateString("it-IT")}</div>
+  </body></html>`;
+  const blob=new Blob([html],{type:"text/html"});
+  const url=URL.createObjectURL(blob);
+  const w=window.open(url,"_blank");
+  if(w)setTimeout(()=>{w.print();URL.revokeObjectURL(url);},600);
+  else{const a=document.createElement("a");a.href=url;a.download="prenotazione.html";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+}
+
+function printList(bks,structs,desc){
+  const sMap=Object.fromEntries(structs.map(s=>[s.id,s]));
+  const rows=bks.map(b=>{const paid=totalPagato(b),rest=(b.total||0)-paid;
+    return `<tr><td>${b.client}</td><td>${b.telefono||""}</td><td>${sMap[b.structure]?.name||""}</td><td>${fmtS(b.checkin)}</td><td>${fmtS(b.checkout)}</td><td>${b.persons}</td>
+    <td><span style="background:${SC[b.status].bg};color:${SC[b.status].text};padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700">${b.status}</span>${isSaldo(b)?' ✅':""}</td>
+    <td>€ ${(b.total||0).toLocaleString("it-IT")}</td><td style="color:${rest>0?"#dc2626":"#059669"}">${rest>0?"€ "+rest.toLocaleString("it-IT"):"✅"}</td></tr>`;
+  }).join("");
+  const html=`<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"/><title>Lista Prenotazioni</title>
+  <style>body{font-family:'Segoe UI',sans-serif;padding:24px;}h1{font-size:18px;color:#1d4ed8;margin-bottom:4px;}.sub{color:#6b7280;font-size:12px;margin-bottom:20px;}table{width:100%;border-collapse:collapse;font-size:11px;}th{background:#0f2444;color:#fff;padding:7px 8px;text-align:left;}td{padding:6px 8px;border-bottom:1px solid #e5e7eb;}tr:nth-child(even){background:#f8fafc;}@media print{body{padding:0;}}</style></head><body>
+  <h1>Lista Prenotazioni</h1><div class="sub">Stampato il ${new Date().toLocaleDateString("it-IT")} &nbsp;·&nbsp; ${bks.length} prenotazioni${desc?" &nbsp;·&nbsp; "+desc:""}</div>
+  <table><thead><tr><th>Cliente</th><th>Telefono</th><th>Struttura</th><th>Arrivo</th><th>Partenza</th><th>Pers.</th><th>Stato</th><th>Totale</th><th>Da pagare</th></tr></thead><tbody>${rows}</tbody></table>
+  </body></html>`;
+  const blob=new Blob([html],{type:"text/html"});
+  const url=URL.createObjectURL(blob);
+  const w=window.open(url,"_blank");
+  if(w)setTimeout(()=>{w.print();URL.revokeObjectURL(url);},600);
+  else{const a=document.createElement("a");a.href=url;a.download="prenotazioni.html";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+}
+
+/* ── COMPONENTS ── */
+function Fld({label,required,children}){return h("div",null,h("div",{className:"fl"},label,required&&h("span",{style:{color:"#ef4444",marginLeft:2}},"*")),children);}
+function Mod({onClose,children}){return h("div",{className:"modal-overlay",onClick:onClose},h("div",{className:"modal-box",onClick:e=>e.stopPropagation()},h("div",{className:"modal-handle"}),children));}
+function DateField({label,required,value,onChange,err}){
+  return h(Fld,{label,required},
+    h("div",{className:"date-inp-wrap"+(err?" err":"")},
+      h("input",{type:"date",value,onChange})
+    ),
+    err&&h("div",{style:{fontSize:10,color:"#ef4444",marginTop:2}},err)
+  );
+}
+
+/* ── BOOKING CARD ── */
+function BCard({b,sn,onClick}){
+  const c=SC[b.status],paid=totalPagato(b),rest=(b.total||0)-paid,saldato=isSaldo(b),parz=isParz(b);
+  return h("div",{className:"card",style:{borderLeft:"4px solid "+c.dot},onClick},
+    h("div",{style:{display:"flex",justifyContent:"space-between",gap:8,marginBottom:4}},
+      h("div",{style:{fontWeight:700,fontSize:14,color:"#111827",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},b.client),
+      h("div",{style:{display:"flex",gap:4,flexShrink:0}},
+        saldato&&h("span",{className:"tag-g",style:{fontSize:9}},"✅ SALDATO"),
+        parz&&h("span",{style:{background:"#fff7ed",color:"#c2410c",borderRadius:6,padding:"2px 6px",fontSize:9,fontWeight:700}},"⚠️ PARZ."),
+        h("span",{className:"badge",style:{background:c.bg,color:c.text}},b.status)
+      )
+    ),
+    h("div",{style:{fontSize:12,color:"#6b7280",marginBottom:3}},"🏨 ",sn," · ",b.room||"—"),
+    h("div",{style:{fontSize:12,color:"#374151",marginBottom:5}},"📅 ",fmtS(b.checkin)," → ",fmtS(b.checkout),h("span",{style:{color:"#9ca3af"}}," (",nts(b.checkin,b.checkout),"n)")," · 👥 ",b.persons,b.animali&&h("span",null," · 🐾 ",b.nAnimali)),
+    h("div",{style:{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}},
+      h("span",{className:"tag"},si(b.source)," ",b.source),
+      h("span",{style:{fontSize:12,fontWeight:700,color:saldato?"#059669":rest>0?"#dc2626":"#059669",marginLeft:"auto"}},
+        saldato?"✅ "+eur(b.total):rest>0?"⚠️ "+eur(rest)+" da saldare":eur(b.total)
+      )
+    )
+  );
+}
+
+/* ── BOOKING DETAIL ── */
+function BDetail({b,sn,onEdit,onDelete,onPrint}){
+  const c=SC[b.status],paid=totalPagato(b),rest=(b.total||0)-paid,saldato=isSaldo(b);
+  return h(Fragment,null,
+    h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}},
+      h("div",null,
+        h("div",{style:{fontSize:18,fontWeight:800,color:"#111827"}},b.client),
+        (b.telefono||b.email)&&h("div",{style:{marginTop:4,display:"flex",gap:10,flexWrap:"wrap"}},
+          b.telefono&&h("a",{href:"tel:"+b.telefono,style:{fontSize:12,color:"#1d4ed8",textDecoration:"none",fontWeight:600}},"📞 ",b.telefono),
+          b.email&&h("a",{href:"mailto:"+b.email,style:{fontSize:12,color:"#1d4ed8",textDecoration:"none",fontWeight:600}},"✉️ ",b.email)
+        ),
+        h("div",{style:{fontSize:12,color:"#6b7280",marginTop:2}},"🏨 ",sn)
+      ),
+      h("div",{style:{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end"}},
+        h("span",{className:"badge",style:{background:c.bg,color:c.text,borderRadius:8,padding:"4px 10px",fontSize:12}},b.status),
+        saldato&&h("span",{className:"tag-g",style:{fontSize:10}},"✅ COMPLETAMENTE SALDATO")
+      )
+    ),
+    h("div",{className:"g2",style:{marginBottom:10}},
+      ...[["Check-in",fmtL(b.checkin)],["Check-out",fmtL(b.checkout)],["Camera",b.room||"—"],["Notti",nts(b.checkin,b.checkout)],["Persone",b.persons],["Provenienza",si(b.source)+" "+b.source]].map(([l,v])=>
+        h("div",{key:l,className:"ibox"},h("div",{style:{fontSize:9,color:"#9ca3af",textTransform:"uppercase",letterSpacing:.5,marginBottom:2}},l),h("div",{style:{fontSize:12,fontWeight:600,color:"#111827"}},v))
+      )
+    ),
+    b.animali&&h("div",{style:{background:"#f0fdf4",borderRadius:9,padding:"8px 12px",marginBottom:10,fontSize:12,color:"#065f46",fontWeight:600}},"🐾 ",b.nAnimali," animal",b.nAnimali===1?"e":"i"),
+    /* breakdown prezzi se disponibile */
+    (b.prezzoApp||b.tassaSoggiorno||b.supplAria||b.supplBiancheria||b.supplAnimali)&&h("div",{style:{background:"#f8fafc",borderRadius:10,padding:"10px 12px",marginBottom:10,border:"1px solid #e5e7eb"}},
+      h("div",{style:{fontSize:11,fontWeight:700,color:"#374151",marginBottom:8}},"🏷️ Dettaglio prezzi"),
+      h("div",{style:{display:"flex",flexDirection:"column",gap:4}},
+        ...[["Appartamento",b.prezzoApp],["Tassa soggiorno",b.tassaSoggiorno],["Suppl. A/C",b.supplAria],["Suppl. biancheria",b.supplBiancheria],["Suppl. animali",b.supplAnimali]].filter(([,v])=>v&&+v>0).map(([l,v])=>
+          h("div",{key:l,className:"row"},h("span",{style:{fontSize:12,color:"#6b7280"}},l),h("span",{style:{fontSize:12,fontWeight:600,color:"#374151"}},eur(+v)))
+        ),
+        h("div",{className:"row",style:{borderTop:"1px dashed #e5e7eb",paddingTop:6,marginTop:2}},h("span",{style:{fontSize:12,fontWeight:700,color:"#374151"}},"Totale"),h("span",{style:{fontSize:14,fontWeight:800,color:"#1d4ed8"}},eur(b.total)))
+      )
+    ),
+    /* COSTI AGENZIA se presenti */
+    (b.commPortali||b.costiPulizie||b.altriCostiImporto||b.tassaSoggiorno)&&h("div",{style:{background:"#fff7ed",borderRadius:10,padding:"10px 12px",marginBottom:10,border:"1.5px solid #fed7aa"}},
+      h("div",{style:{fontSize:11,fontWeight:700,color:"#92400e",marginBottom:8}},"\ud83d\udcca Dettaglio Costi Agenzia"),
+      h("div",{style:{display:"flex",flexDirection:"column",gap:4}},
+        +b.tassaSoggiorno>0&&h("div",{key:"ts",className:"row"},h("span",{style:{fontSize:12,color:"#6b7280"}},"\ud83c\udfd9\ufe0f Tassa soggiorno (\u2192 Comune)"),h("span",{style:{fontSize:12,fontWeight:600,color:"#6366f1"}},eur(+b.tassaSoggiorno))),
+        h("div",{key:"rl",className:"row"},h("span",{style:{fontSize:12,color:"#6b7280"}},"Ricavo lordo (senza tassa)"),h("span",{style:{fontSize:12,fontWeight:600,color:"#374151"}},eur(ricavoLordo(b)))),
+        (b.commPortali&&+b.commPortali!==0)&&h("div",{key:"cp",className:"row"},h("span",{style:{fontSize:12,color:"#6b7280"}},"Commissioni portali"),h("span",{style:{fontSize:12,fontWeight:600,color:"#ef4444"}},eur(costoVal(b.commPortali)))),
+        (b.costiPulizie&&+b.costiPulizie!==0)&&h("div",{key:"cl",className:"row"},h("span",{style:{fontSize:12,color:"#6b7280"}},"Costi pulizie"),h("span",{style:{fontSize:12,fontWeight:600,color:"#ef4444"}},eur(costoVal(b.costiPulizie)))),
+        (b.altriCostiImporto&&+b.altriCostiImporto!==0)&&h("div",{key:"ac",className:"row"},h("span",{style:{fontSize:12,color:"#6b7280"}},b.altriCostiDesc||"Altri costi"),h("span",{style:{fontSize:12,fontWeight:600,color:"#ef4444"}},eur(costoVal(b.altriCostiImporto)))),
+        (b.commPortali||b.costiPulizie||b.altriCostiImporto)&&h("div",{className:"row",style:{borderTop:"1px dashed #fed7aa",paddingTop:6,marginTop:2}},
+          h("span",{style:{fontSize:12,fontWeight:700,color:"#374151"}},"Totale costi agenzia"),
+          h("span",{style:{fontSize:12,fontWeight:700,color:"#ef4444"}},eur(totalCostiAgenzia(b)))
+        ),
+        h("div",{className:"row",style:{marginTop:4,borderTop:"1.5px solid #fb923c",paddingTop:6}},
+          h("span",{style:{fontSize:13,fontWeight:800,color:"#065f46"}},"\ud83d\udc9a Guadagno netto"),
+          h("span",{style:{fontSize:15,fontWeight:800,color:"#059669"}},eur(guadagnoNetto(b)))
+        )
+      )
+    ),
+    /* PAGAMENTI */
+    h("div",{style:{background:"#f8fafc",borderRadius:11,padding:"12px 14px",marginBottom:10,border:"1px solid #e5e7eb"}},
+      h("div",{style:{fontSize:11,fontWeight:700,color:"#374151",marginBottom:10}},"💰 Pagamenti"),
+      h("div",{style:{borderBottom:"1px dashed #e5e7eb",paddingBottom:10,marginBottom:10}},
+        (b.acconti||[]).length===0
+          ? h("div",{style:{fontSize:12,color:"#9ca3af",fontStyle:"italic"}},"Nessun pagamento registrato")
+          : (b.acconti||[]).map((a,i)=>
+              h("div",{key:i,style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}},
+                h("div",null,
+                  h("div",{style:{fontSize:12,color:"#374151"}},h("span",{style:{background:"#e0e7ff",color:"#4f46e5",borderRadius:4,padding:"1px 6px",fontSize:10,fontWeight:700,marginRight:6}},"#"+(i+1)),a.metodo||"—"),
+                  h("div",{style:{fontSize:10,color:"#9ca3af"}},a.data?fmtS(a.data):"—")
+                ),
+                h("div",{style:{fontWeight:700,fontSize:14,color:"#059669"}},eur(+a.importo||0))
+              )
+            )
+      ),
+      h("div",{style:{background:saldato?"#d1fae5":rest>0?"#fff7ed":"#d1fae5",borderRadius:8,padding:"8px 12px"}},
+        h("div",{className:"row"},h("span",{style:{fontSize:12,color:"#374151"}},"Totale"),h("span",{style:{fontSize:14,fontWeight:800}},eur(b.total))),
+        h("div",{className:"row"},h("span",{style:{fontSize:12,color:"#374151"}},"Pagato"),h("span",{style:{fontSize:13,fontWeight:700,color:"#059669"}},eur(paid))),
+        rest>0
+          ? h("div",{className:"row",style:{borderTop:"1px dashed #fde68a",marginTop:4,paddingTop:4}},h("span",{style:{fontSize:12,fontWeight:700,color:"#92400e"}},"Da saldare"),h("span",{style:{fontSize:14,fontWeight:800,color:"#dc2626"}},eur(rest)))
+          : h("div",{style:{textAlign:"center",marginTop:4,fontSize:12,fontWeight:700,color:"#065f46"}},"✅ Completamente saldato")
+      )
+    ),
+    b.notes&&h("div",{style:{background:"#fffbeb",borderRadius:9,padding:"9px 12px",marginBottom:10,fontSize:12,color:"#374151",border:"1px solid #fde68a"}},h("strong",null,"📝 Note: "),b.notes),
+    h("div",{style:{display:"flex",gap:8}},
+      h("button",{className:"btn",style:{flex:1,background:"#1d4ed8",color:"#fff"},onClick:onEdit},"✏️ Modifica"),
+      h("button",{className:"btn",style:{background:"#f3f4f6",color:"#374151",padding:"11px 14px"},onClick:onPrint},"🖨️"),
+      h("button",{className:"btn",style:{background:"#fee2e2",color:"#dc2626",padding:"11px 14px"},onClick:()=>{if(confirm("Eliminare?"))onDelete();}},"🗑")
+    )
+  );
+}
+
+/* ── STRUCT DETAIL ── */
+function SDetail({s,bookings,onEdit,onDelete}){
+  const nB=bookings.filter(b=>b.structure===s.id&&b.status!=="Cancellata").length;
+  return h(Fragment,null,
+    h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}},
+      h("div",null,
+        h("div",{style:{fontSize:19,fontWeight:800,color:"#111827"}},s.name),
+        h("div",{style:{fontSize:13,color:"#6b7280"}},s.tipologia,(s.localita?h("span",{style:{marginLeft:6,color:"#1d4ed8",fontWeight:600}},"📍 "+s.localita):null))
+      ),
+      s.animali&&h("span",{className:"badge",style:{background:"#d1fae5",color:"#065f46",borderRadius:8,padding:"4px 12px",fontSize:12}},"🐾 Pet")
+    ),
+    h("div",{className:"g3",style:{marginBottom:12}},
+      ...[["Camere","🛏 "+s.camere],["Posti","👥 "+s.posti],["Prenotazioni","📋 "+nB]].map(([l,v])=>
+        h("div",{key:l,style:{background:"#f9fafb",borderRadius:9,padding:"10px 8px",textAlign:"center"}},h("div",{style:{fontSize:9,color:"#9ca3af",textTransform:"uppercase",letterSpacing:.5,marginBottom:3}},l),h("div",{style:{fontSize:15,fontWeight:800,color:"#111827"}},v))
+      )
+    ),
+    s.servizi.length>0&&h("div",{style:{marginBottom:12}},h("div",{style:{fontSize:11,fontWeight:700,color:"#374151",marginBottom:6}},"✨ Servizi"),h("div",{style:{display:"flex",gap:6,flexWrap:"wrap"}},...s.servizi.map(sv=>h("span",{key:sv,className:"tag-b",style:{borderRadius:7,padding:"4px 10px",fontSize:12,fontWeight:600}},sv)))),
+    s.note&&h("div",{style:{background:"#fffbeb",borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#374151",border:"1px solid #fde68a"}},h("strong",null,"📝 Note: "),s.note),
+    h("div",{style:{display:"flex",gap:9}},
+      h("button",{className:"btn",style:{flex:1,background:"#6366f1",color:"#fff"},onClick:onEdit},"✏️ Modifica"),
+      h("button",{className:"btn",style:{background:"#fee2e2",color:"#dc2626",padding:"12px 16px"},onClick:onDelete},"🗑")
+    )
+  );
+}
+
+function ConfDel({s,bookings,onConfirm,onCancel}){
+  const nB=bookings.filter(b=>b.structure===s.id).length;
+  return h("div",{style:{textAlign:"center",padding:"8px 0"}},
+    h("div",{style:{fontSize:40,marginBottom:8}},"⚠️"),
+    h("div",{style:{fontSize:17,fontWeight:800,color:"#111827",marginBottom:8}},"Eliminare ",s.name,"?"),
+    nB>0&&h("div",{style:{background:"#fee2e2",borderRadius:9,padding:10,marginBottom:12,fontSize:13,color:"#dc2626",fontWeight:600}},"Verranno eliminate anche ",h("strong",null,nB," prenotazioni")," associate."),
+    h("div",{style:{fontSize:13,color:"#6b7280",marginBottom:16}},"Questa azione non può essere annullata."),
+    h("div",{style:{display:"flex",gap:9}},
+      h("button",{className:"btn",style:{flex:1,background:"#f3f4f6",color:"#374151",fontWeight:600},onClick:onCancel},"Annulla"),
+      h("button",{className:"btn",style:{flex:1,background:"#dc2626",color:"#fff"},onClick:onConfirm},"Sì, elimina")
+    )
+  );
+}
+
+/* ── STRUCT FORM ── */
+function SForm({form,setForm,onSave,onClose,isEdit}){
+  const tog=sv=>setForm(p=>({...p,servizi:p.servizi.includes(sv)?p.servizi.filter(x=>x!==sv):[...p.servizi,sv]}));
+  const upd=k=>e=>setForm(p=>({...p,[k]:e.target.value}));
+  const [errs,setErrs]=useState({});
+  const save=()=>{
+    const e={};
+    if(!form.name.trim())e.name="Obbligatorio";
+    setErrs(e);
+    if(Object.keys(e).length===0)onSave();
+  };
+  return h(Fragment,null,
+    h("div",{style:{fontSize:17,fontWeight:800,color:"#111827",marginBottom:14}},isEdit?"✏️ Modifica Struttura":"＋ Nuova Struttura"),
+    h("div",{className:"col"},
+      h(Fld,{label:"Nome struttura",required:true},
+        h("input",{className:"inp"+(errs.name?" err":""),value:form.name,onChange:upd("name"),placeholder:"Es. Appartamento Mare"}),
+        errs.name&&h("div",{style:{fontSize:10,color:"#ef4444",marginTop:2}},errs.name)
+      ),
+      h(Fld,{label:"📍 Località"},
+        h("input",{className:"inp",value:form.localita||"",onChange:upd("localita"),placeholder:"Es. Forte dei Marmi, Lucca, Siena..."})
+      ),
+      h(Fld,{label:"Categoria",required:true},
+        h("div",{style:{display:"flex",gap:8,marginTop:4}},
+          ...TIPOLOGIE.map(t=>h("button",{key:t,className:"chip"+(form.tipologia===t?" sel":""),onClick:()=>setForm(p=>({...p,tipologia:t})),style:{flex:1,textAlign:"center",fontWeight:700,fontSize:12}},t))
+        )
+      ),
+      h("div",{className:"g2"},
+        h(Fld,{label:"N° camere"},h("input",{className:"inp",type:"number",min:1,value:form.camere,onChange:e=>setForm(p=>({...p,camere:+e.target.value}))})),
+        h(Fld,{label:"Posti letto"},h("input",{className:"inp",type:"number",min:1,value:form.posti,onChange:e=>setForm(p=>({...p,posti:+e.target.value}))}))
+      ),
+      h("label",{style:{display:"flex",alignItems:"center",gap:10,cursor:"pointer",padding:"10px 12px",background:"#f0fdf4",borderRadius:10,border:"1.5px solid #bbf7d0"}},
+        h("input",{type:"checkbox",checked:form.animali,onChange:e=>setForm(p=>({...p,animali:e.target.checked})),style:{width:18,height:18,accentColor:"#10b981",cursor:"pointer"}}),
+        h("div",null,h("div",{style:{fontSize:13,fontWeight:700,color:"#065f46"}},"🐾 Animali ammessi"),h("div",{style:{fontSize:11,color:"#6b7280"}},"Accetta cani, gatti e altri animali"))
+      ),
+      h(Fld,{label:"Servizi"},h("div",{style:{display:"flex",flexWrap:"wrap",gap:6,marginTop:4}},...SERVIZI.map(sv=>h("button",{key:sv,className:"chip"+(form.servizi.includes(sv)?" sel":""),onClick:()=>tog(sv)},sv)))),
+      h(Fld,{label:"Note interne"},h("textarea",{className:"inp",rows:3,value:form.note,onChange:upd("note"),placeholder:"Es. Codice cassetta: 1234."}))
+    ),
+    h("div",{style:{display:"flex",gap:9,marginTop:14}},
+      h("button",{className:"btn",style:{flex:1,background:"#f3f4f6",color:"#374151",fontWeight:600},onClick:onClose},"Annulla"),
+      h("button",{className:"btn",style:{flex:2,background:"#6366f1",color:"#fff"},onClick:save},isEdit?"Salva modifiche":"Aggiungi struttura")
+    )
+  );
+}
+
+/* ── BOOKING FORM ── */
+function BForm({form,setForm,onSave,onClose,isEdit,structs}){
+  const [errs,setErrs]=useState({});
+  const upd=k=>e=>setForm(p=>({...p,[k]:e.target.value}));
+
+  /* acconti helpers */
+  const addAcconto=()=>setForm(p=>({...p,acconti:[...p.acconti,emAcconto()]}));
+  const removeAcconto=i=>setForm(p=>({...p,acconti:p.acconti.filter((_,j)=>j!==i)}));
+  const updAcconto=(i,k)=>e=>setForm(p=>({...p,acconti:p.acconti.map((a,j)=>j===i?{...a,[k]:e.target.value}:a)}));
+
+  const validate=()=>{
+    const e={};
+    if(!form.client)e.client="Obbligatorio";
+    if(!form.checkin)e.checkin="Obbligatorio";
+    if(!form.checkout)e.checkout="Obbligatorio";
+    if(!form.persons||+form.persons<1)e.persons="Obbligatorio (min 1)";
+    if(!form.prezzoApp&&form.prezzoApp!==0)e.prezzoApp="Obbligatorio";
+    if(form.prezzoApp!==""&&form.prezzoApp!==undefined&&+form.prezzoApp<0)e.prezzoApp="Deve essere ≥ 0";
+    if(form.tassaSoggiorno===""||form.tassaSoggiorno===undefined)e.tassaSoggiorno="Obbligatorio";
+    if(!!form.animali&&(form.supplAnimali===""||form.supplAnimali===undefined))e.supplAnimali="Obbligatorio con animali";
+    /* data obbligatoria per ogni pagamento */
+    (form.acconti||[]).forEach((a,i)=>{if(!a.data)e["acc_data_"+i]="Data obbligatoria";});
+    setErrs(e);return Object.keys(e).length===0;
+  };
+
+  const paid=(form.acconti||[]).reduce((s,a)=>s+(+a.importo||0),0);
+  const computedTotal=(+form.prezzoApp||0)+(+form.tassaSoggiorno||0)+(+form.supplAria||0)+(+form.supplBiancheria||0)+(!!form.animali?(+form.supplAnimali||0):0);
+  const rest=computedTotal-paid;
+
+  return h(Fragment,null,
+    h("div",{style:{fontSize:17,fontWeight:800,color:"#111827",marginBottom:14}},isEdit?"✏️ Modifica Prenotazione":"＋ Nuova Prenotazione"),
+    h("div",{className:"col"},
+      h(Fld,{label:"Struttura"},h("select",{className:"inp",value:form.structure,onChange:upd("structure")},structs.map(s=>h("option",{key:s.id,value:s.id},s.name," (",s.tipologia,")")))),
+      h(Fld,{label:"Nome cliente",required:true},
+        h("input",{className:"inp"+(errs.client?" err":""),value:form.client,onChange:upd("client"),placeholder:"Es. Mario Rossi"}),
+        errs.client&&h("div",{style:{fontSize:10,color:"#ef4444",marginTop:2}},errs.client)
+      ),
+      h("div",{className:"g2"},
+        h(Fld,{label:"📞 Contatto telefonico"},h("input",{className:"inp",type:"tel",value:form.telefono||"",onChange:upd("telefono"),placeholder:"Es. +39 333 1234567"})),
+        h(Fld,{label:"✉️ Email"},h("input",{className:"inp",type:"email",value:form.email||"",onChange:upd("email"),placeholder:"Es. mario@email.com"}))
+      ),
+      h("div",{className:"g2"},
+        h("div",null,
+          h("div",{className:"fl"},"CHECK-IN",h("span",{style:{color:"#ef4444",marginLeft:2}},"*")),
+          h("div",{className:"date-inp-wrap"+(errs.checkin?" err":"")},
+            h("input",{type:"date",value:form.checkin,onChange:e=>{upd("checkin")(e);if(form.checkout&&e.target.value>=form.checkout)setForm(p=>({...p,checkout:""}));}})
+          ),
+          errs.checkin&&h("div",{style:{fontSize:10,color:"#ef4444",marginTop:2}},errs.checkin)
+        ),
+        h("div",null,
+          h("div",{className:"fl"},"CHECK-OUT",h("span",{style:{color:"#ef4444",marginLeft:2}},"*")),
+          h("div",{className:"date-inp-wrap"+(errs.checkout?" err":"")},
+            h("input",{type:"date",value:form.checkout,min:form.checkin||undefined,onChange:upd("checkout")})
+          ),
+          errs.checkout&&h("div",{style:{fontSize:10,color:"#ef4444",marginTop:2}},errs.checkout)
+        )
+      ),
+      h("div",{className:"g2"},
+        h(Fld,{label:"Persone",required:true},
+          h("input",{className:"inp"+(errs.persons?" err":""),type:"number",min:1,value:form.persons,onChange:upd("persons")}),
+          errs.persons&&h("div",{style:{fontSize:10,color:"#ef4444",marginTop:2}},errs.persons)
+        ),
+        h(Fld,{label:"Camera / Unità"},h("input",{className:"inp",value:form.room,onChange:upd("room"),placeholder:"Es. 101"}))
+      ),
+      /* animali */
+      h("div",{style:{background:"#f0fdf4",borderRadius:10,padding:"10px 12px",border:"1.5px solid #bbf7d0"}},
+        h("label",{style:{display:"flex",alignItems:"center",gap:8,cursor:"pointer",marginBottom:!!form.animali?8:0}},
+          h("input",{type:"checkbox",checked:!!form.animali,onChange:e=>setForm(p=>({...p,animali:e.target.checked,nAnimali:e.target.checked?1:0})),style:{width:16,height:16,accentColor:"#10b981",cursor:"pointer"}}),
+          h("span",{style:{fontSize:13,fontWeight:700,color:"#065f46"}},"🐾 Il cliente porta animali")
+        ),
+        !!form.animali&&h("div",{className:"g2"},
+          h(Fld,{label:"Numero animali"},h("input",{className:"inp",type:"number",min:1,max:10,value:form.nAnimali,onChange:e=>setForm(p=>({...p,nAnimali:+e.target.value}))})),
+          h("div",null)
+        )
+      ),
+      h(Fld,{label:"Stato"},h("select",{className:"inp",value:form.status,onChange:upd("status")},STATUSES.map(s=>h("option",{key:s},s)))),
+      h(Fld,{label:"Provenienza"},h("select",{className:"inp",value:form.source,onChange:upd("source")},SOURCES.map(s=>h("option",{key:s},s)))),
+
+      /* ── DETTAGLIO PREZZI ── */
+      h("div",{style:{background:"#f8fafc",borderRadius:12,padding:"12px 14px",border:"1px solid #e5e7eb"}},
+        h("div",{style:{fontSize:11,fontWeight:700,color:"#374151",marginBottom:10}},"🏷️ Dettaglio prezzi"),
+        h("div",{className:"g2"},
+          h(Fld,{label:"Prezzo appartamento",required:true},
+            h("input",{className:"inp"+(errs.prezzoApp?" err":""),type:"number",min:0,value:form.prezzoApp||"",onChange:upd("prezzoApp"),placeholder:"0"}),
+            errs.prezzoApp&&h("div",{style:{fontSize:10,color:"#ef4444",marginTop:2}},errs.prezzoApp)
+          ),
+          h(Fld,{label:"Tassa di soggiorno",required:true},
+            h("input",{className:"inp"+(errs.tassaSoggiorno?" err":""),type:"number",min:0,value:form.tassaSoggiorno||"",onChange:upd("tassaSoggiorno"),placeholder:"0"}),
+            errs.tassaSoggiorno&&h("div",{style:{fontSize:10,color:"#ef4444",marginTop:2}},errs.tassaSoggiorno)
+          ),
+          h(Fld,{label:"Suppl. aria condizionata"},
+            h("input",{className:"inp",type:"number",min:0,value:form.supplAria||"",onChange:upd("supplAria"),placeholder:"0"})
+          ),
+          h(Fld,{label:"Suppl. biancheria"},
+            h("input",{className:"inp",type:"number",min:0,value:form.supplBiancheria||"",onChange:upd("supplBiancheria"),placeholder:"0"})
+          )
+        ),
+        !!form.animali&&h("div",{style:{marginTop:8}},
+          h(Fld,{label:"Suppl. animali",required:true},
+            h("input",{className:"inp"+(errs.supplAnimali?" err":""),type:"number",min:0,value:form.supplAnimali||"",onChange:upd("supplAnimali"),placeholder:"0"}),
+            errs.supplAnimali&&h("div",{style:{fontSize:10,color:"#ef4444",marginTop:2}},errs.supplAnimali)
+          )
+        ),
+        /* totale calcolato automaticamente */
+        h("div",{style:{background:"#fff",borderRadius:8,padding:"10px 12px",marginTop:10,border:"1.5px solid #1d4ed8"}},
+          h("div",{className:"row"},
+            h("span",{style:{fontSize:12,color:"#374151",fontWeight:600}},"💰 Totale soggiorno"),
+            h("span",{style:{fontSize:16,fontWeight:800,color:"#1d4ed8"}},eur(
+              (+form.prezzoApp||0)+(+form.tassaSoggiorno||0)+(+form.supplAria||0)+(+form.supplBiancheria||0)+(!!form.animali?(+form.supplAnimali||0):0)
+            ))
+          ),
+          h("div",{style:{fontSize:10,color:"#9ca3af",marginTop:3}},
+            [
+              form.prezzoApp&&"App. "+eur(+form.prezzoApp),
+              form.tassaSoggiorno&&"Tassa "+eur(+form.tassaSoggiorno),
+              form.supplAria&&"A/C "+eur(+form.supplAria),
+              form.supplBiancheria&&"Biancheria "+eur(+form.supplBiancheria),
+              (!!form.animali&&form.supplAnimali)&&"Animali "+eur(+form.supplAnimali),
+            ].filter(Boolean).join(" + ")
+          )
+        )
+      ),
+
+      /* ── ACCONTI MULTIPLI ── */
+      h("div",{style:{background:"#f8fafc",borderRadius:12,padding:"12px 14px",border:"1px solid #e5e7eb"}},
+        h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}},
+          h("div",{style:{fontSize:11,fontWeight:700,color:"#374151"}},"💳 Pagamenti ricevuti"),
+          h("button",{onClick:addAcconto,style:{background:"#1d4ed8",color:"#fff",border:"none",borderRadius:8,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}},"＋ Aggiungi")
+        ),
+        (form.acconti||[]).length===0
+          ? h("div",{style:{textAlign:"center",fontSize:12,color:"#9ca3af",padding:"10px 0",fontStyle:"italic"}},"Nessun pagamento — premi ＋ per aggiungere")
+          : (form.acconti||[]).map((a,i)=>
+              h("div",{key:i,style:{background:"#fff",borderRadius:10,padding:"10px 12px",marginBottom:8,border:"1.5px solid #e5e7eb",position:"relative"}},
+                h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
+                  h("span",{style:{background:"#e0e7ff",color:"#4f46e5",borderRadius:5,padding:"2px 8px",fontSize:10,fontWeight:700}},"Pagamento #"+(i+1)),
+                  h("button",{onClick:()=>removeAcconto(i),style:{background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,padding:"3px 9px",fontSize:11,fontWeight:700,cursor:"pointer"}},"✕")
+                ),
+                h("div",{className:"g2",style:{marginBottom:6}},
+                  h(Fld,{label:"Importo (€)"},h("input",{className:"inp",type:"number",value:a.importo,onChange:updAcconto(i,"importo"),placeholder:"0"})),
+                  h("div",null,
+                    h("div",{className:"fl"},"Data",h("span",{style:{color:"#ef4444",marginLeft:2}},"*")),
+                    h("div",{className:"date-inp-wrap"+(errs["acc_data_"+i]?" err":"")},h("input",{type:"date",value:a.data,onChange:updAcconto(i,"data")})),
+                    errs["acc_data_"+i]&&h("div",{style:{fontSize:10,color:"#ef4444",marginTop:2}},errs["acc_data_"+i])
+                  )
+                ),
+                h(Fld,{label:"Metodo"},h("select",{className:"inp",value:a.metodo,onChange:updAcconto(i,"metodo")},PAY_METHODS.map(m=>h("option",{key:m},m))))
+              )
+            ),
+        /* totale live */
+        (form.acconti||[]).length>0&&h("div",{style:{background:rest<=0?"#d1fae5":rest<computedTotal?"#fff7ed":"#f9fafb",borderRadius:8,padding:"8px 12px",marginTop:4}},
+          h("div",{className:"row"},h("span",{style:{fontSize:11,color:"#6b7280"}},"Totale pagamenti"),h("span",{style:{fontSize:13,fontWeight:800,color:"#059669"}},eur(paid))),
+          computedTotal>0&&h("div",{className:"row",style:{marginTop:3}},h("span",{style:{fontSize:11,color:"#6b7280"}},"Da saldare"),h("span",{style:{fontSize:13,fontWeight:800,color:rest<=0?"#059669":"#dc2626"}},rest<=0?"✅ Saldato":eur(rest)))
+        )
+      ),
+
+      h(Fld,{label:"Note"},h("textarea",{className:"inp",rows:2,value:form.notes,onChange:upd("notes"),placeholder:"Richieste speciali..."})),
+
+      /* ── DETTAGLIO COSTI AGENZIA ── */
+      h("div",{style:{background:"#fff7ed",borderRadius:12,padding:"12px 14px",border:"1.5px solid #fed7aa"}},
+        h("div",{style:{fontSize:11,fontWeight:700,color:"#92400e",marginBottom:10}},"📊 Dettaglio Costi Agenzia",h("span",{style:{fontSize:9,color:"#b45309",fontWeight:400,marginLeft:6}},"(opzionale)")),
+        h("div",{className:"col"},
+          /* commissioni portali */
+          h("div",{style:{display:"flex",gap:8,alignItems:"flex-end"}},
+            h("div",{style:{flex:1}},
+              h("div",{className:"fl"},"Commissioni portali"),
+              h("input",{className:"inp",type:"number",value:form.commPortali||"",onChange:upd("commPortali"),placeholder:"Es. 80",style:{background:"#fff"}})
+            ),
+            h("div",{style:{paddingBottom:2,fontSize:10,color:"#9ca3af",whiteSpace:"nowrap"}},
+              form.commPortali&&+form.commPortali<0?h("span",{style:{color:"#ef4444",fontWeight:700}},eur(+form.commPortali)):null
+            )
+          ),
+          /* costi pulizie */
+          h("div",{style:{display:"flex",gap:8,alignItems:"flex-end"}},
+            h("div",{style:{flex:1}},
+              h("div",{className:"fl"},"Costi pulizie"),
+              h("input",{className:"inp",type:"number",value:form.costiPulizie||"",onChange:upd("costiPulizie"),placeholder:"Es. 50",style:{background:"#fff"}})
+            ),
+            h("div",{style:{paddingBottom:2,fontSize:10,color:"#9ca3af",whiteSpace:"nowrap"}},
+              form.costiPulizie&&+form.costiPulizie<0?h("span",{style:{color:"#ef4444",fontWeight:700}},eur(+form.costiPulizie)):null
+            )
+          ),
+          /* altri costi (testo + importo) */
+          h("div",{style:{display:"flex",gap:8,alignItems:"flex-end"}},
+            h("div",{style:{flex:2}},
+              h("div",{className:"fl"},"Altri costi (descrizione)"),
+              h("input",{className:"inp",value:form.altriCostiDesc||"",onChange:upd("altriCostiDesc"),placeholder:"Es. Manutenzione",style:{background:"#fff"}})
+            ),
+            h("div",{style:{flex:1}},
+              h("div",{className:"fl"},"Importo"),
+              h("input",{className:"inp",type:"number",value:form.altriCostiImporto||"",onChange:upd("altriCostiImporto"),placeholder:"Es. 30",style:{background:"#fff"}})
+            )
+          ),
+          /* riepilogo netto */
+          (()=>{
+            const fCosti=totalCostiAgenzia({commPortali:form.commPortali,costiPulizie:form.costiPulizie,altriCostiImporto:form.altriCostiImporto});
+            const fTassa=+form.tassaSoggiorno||0;
+            const fRicavo=computedTotal-fTassa;
+            const fNetto=fRicavo+fCosti;
+            return h("div",{style:{background:"#fff",borderRadius:9,padding:"10px 12px",marginTop:4,border:"1.5px solid #fb923c"}},
+              fTassa>0&&h("div",{className:"row",style:{marginBottom:4}},
+                h("span",{style:{fontSize:11,color:"#6b7280"}},"🏛️ Tassa soggiorno (girata al Comune)"),
+                h("span",{style:{fontSize:12,fontWeight:600,color:"#6366f1"}},eur(fTassa))
+              ),
+              h("div",{className:"row",style:{marginBottom:4}},
+                h("span",{style:{fontSize:11,color:"#6b7280"}},"Ricavo lordo (senza tassa)"),
+                h("span",{style:{fontSize:12,fontWeight:600,color:"#374151"}},computedTotal>0?eur(fRicavo):"—")
+              ),
+              fCosti<0&&h("div",{className:"row",style:{marginBottom:4}},
+                h("span",{style:{fontSize:11,color:"#6b7280"}},"Totale costi agenzia"),
+                h("span",{style:{fontSize:12,fontWeight:700,color:"#ef4444"}},eur(fCosti))
+              ),
+              h("div",{className:"row"},
+                h("span",{style:{fontSize:12,fontWeight:700,color:"#374151"}},"💚 Guadagno netto stimato"),
+                h("span",{style:{fontSize:15,fontWeight:800,color:"#059669"}},computedTotal>0?eur(fNetto):"—")
+              )
+            );
+          })()
+        )
+      )
+    ),
+    h("div",{style:{display:"flex",gap:9,marginTop:14}},
+      h("button",{className:"btn",style:{flex:1,background:"#f3f4f6",color:"#374151",fontWeight:600},onClick:onClose},"Annulla"),
+      h("button",{className:"btn",style:{flex:2,background:"#1d4ed8",color:"#fff"},onClick:()=>{if(validate())onSave();}},isEdit?"Salva modifiche":"Aggiungi")
+    )
+  );
+}
+
+function printContabilita(filtered,kpis,perMese,perStruttura,perTipo,perCanale,sMap,desc){
+  const mesiRows=perMese.map(m=>{const[y,mo]=m.key.split("-");return`<tr><td>${MONTHS_SHORT[+mo-1]} ${y}</td><td>${m.pren}</td><td>${m.notti}</td><td>€ ${m.fatturato.toLocaleString("it-IT")}</td><td>€ ${m.incassato.toLocaleString("it-IT")}</td><td style="color:${m.fatturato-m.incassato>0?"#dc2626":"#059669"}">€ ${(m.fatturato-m.incassato).toLocaleString("it-IT")}</td><td style="color:#6366f1">${m.tassa>0?"€ "+m.tassa.toLocaleString("it-IT"):"—"}</td><td style="color:#ef4444">${m.costi<0?"€ "+m.costi.toLocaleString("it-IT"):"—"}</td><td style="color:#059669;font-weight:700">€ ${m.netto.toLocaleString("it-IT")}</td></tr>`;}).join("");
+  const strRows=perStruttura.map(s=>`<tr><td>${s.name}</td><td>${s.tipologia}</td><td>${s.pren}</td><td>${s.notti}</td><td>€ ${s.fatturato.toLocaleString("it-IT")}</td><td>€ ${s.incassato.toLocaleString("it-IT")}</td><td style="color:#6366f1">${s.tassa>0?"€ "+s.tassa.toLocaleString("it-IT"):"—"}</td><td style="color:#ef4444">${s.costi<0?"€ "+s.costi.toLocaleString("it-IT"):"—"}</td><td style="color:#059669;font-weight:700">€ ${s.netto.toLocaleString("it-IT")}</td></tr>`).join("");
+  const html=`<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"/><title>Report Contabilità</title>
+  <style>*{box-sizing:border-box;}body{font-family:'Segoe UI',sans-serif;padding:28px;color:#111;max-width:900px;margin:0 auto;}h1{font-size:20px;color:#1d4ed8;margin-bottom:4px;}h2{font-size:14px;color:#1e3a5f;margin:22px 0 8px;border-bottom:2px solid #e5e7eb;padding-bottom:4px;}.sub{color:#6b7280;font-size:12px;margin-bottom:20px;}.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}.kpi{background:#f8fafc;border-radius:8px;padding:12px;border-left:4px solid #1d4ed8;}.kv{font-size:20px;font-weight:800;color:#1d4ed8;}.kl{font-size:10px;text-transform:uppercase;color:#6b7280;margin-top:2px;}table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:20px;}th{background:#0f2444;color:#fff;padding:7px 10px;text-align:left;}td{padding:6px 10px;border-bottom:1px solid #e5e7eb;}tr:nth-child(even){background:#f8fafc;}@media print{body{padding:0;}}</style></head><body>
+  <h1>📊 Report Contabilità</h1>
+  <div class="sub">Stampato il ${new Date().toLocaleDateString("it-IT")}${desc?" &nbsp;·&nbsp; "+desc:""} &nbsp;·&nbsp; ${filtered.length} prenotazioni</div>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kv">€ ${kpis.tot.toLocaleString("it-IT")}</div><div class="kl">Fatturato totale</div></div>
+    <div class="kpi" style="border-left-color:#10b981"><div class="kv" style="color:#10b981">€ ${kpis.incassato.toLocaleString("it-IT")}</div><div class="kl">Già incassato</div></div>
+    <div class="kpi" style="border-left-color:#f59e0b"><div class="kv" style="color:#f59e0b">€ ${kpis.daIncassare.toLocaleString("it-IT")}</div><div class="kl">Da incassare</div></div>
+    <div class="kpi" style="border-left-color:#6366f1"><div class="kv" style="color:#6366f1">€ ${kpis.tassaSogg.toLocaleString("it-IT")}</div><div class="kl">Tassa soggiorno (→ Comune)</div></div>
+    <div class="kpi" style="border-left-color:#ef4444"><div class="kv" style="color:#ef4444">€ ${kpis.costiAgenzia.toLocaleString("it-IT")}</div><div class="kl">Costi agenzia</div></div>
+    <div class="kpi" style="border-left-color:#059669"><div class="kv" style="color:#059669">€ ${kpis.netto.toLocaleString("it-IT")}</div><div class="kl">Guadagno netto 💚</div></div>
+    <div class="kpi" style="border-left-color:#8b5cf6"><div class="kv" style="color:#8b5cf6">${kpis.notti}</div><div class="kl">Notti totali</div></div>
+  </div>
+  <h2>📅 Fatturato per mese</h2>
+  <table><thead><tr><th>Mese</th><th>Pren.</th><th>Notti</th><th>Fatturato</th><th>Incassato</th><th>Da incassare</th><th style="background:#6366f1">Tassa sogg.</th><th>Costi agenzia</th><th style="background:#065f46">Netto</th></tr></thead><tbody>${mesiRows}</tbody></table>
+  <h2>🏨 Fatturato per struttura</h2>
+  <table><thead><tr><th>Struttura</th><th>Categoria</th><th>Pren.</th><th>Notti</th><th>Fatturato</th><th>Incassato</th><th style="background:#6366f1">Tassa sogg.</th><th>Costi agenzia</th><th style="background:#065f46">Netto</th></tr></thead><tbody>${strRows}</tbody></table>
+  </body></html>`;
+  const blob=new Blob([html],{type:"text/html"});
+  const url=URL.createObjectURL(blob);
+  const w=window.open(url,"_blank");
+  if(w)setTimeout(()=>{w.print();URL.revokeObjectURL(url);},600);
+  else{const a=document.createElement("a");a.href=url;a.download="report-contabilita.html";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+}
+/* ── SPESA FORM ── */
+function SpesaForm({form,setForm,onSave,onClose,isEdit,structs}){
+  const [errs,setErrs]=useState({});
+  const upd=k=>e=>setForm(p=>({...p,[k]:e.target.value}));
+  const save=()=>{
+    const e={};
+    if(!form.struttura)e.struttura="Obbligatorio";
+    if(!form.categoria)e.categoria="Obbligatorio";
+    if(!form.importo||+form.importo<=0)e.importo="Importo non valido";
+    if(!form.data)e.data="Obbligatorio";
+    setErrs(e);
+    if(Object.keys(e).length===0)onSave();
+  };
+  return h(Fragment,null,
+    h("div",{style:{fontSize:17,fontWeight:800,color:"#111827",marginBottom:14}},isEdit?"✏️ Modifica Spesa":"＋ Nuova Spesa"),
+    h("div",{className:"col"},
+      h(Fld,{label:"Struttura",required:true},
+        h("select",{className:"inp"+(errs.struttura?" err":""),value:form.struttura,onChange:upd("struttura")},
+          h("option",{value:""},"— Seleziona —"),
+          h("option",{value:"__tutte__"},"🏘 Tutte le strutture (spesa comune)"),
+          ...structs.map(s=>h("option",{key:s.id,value:s.id},s.name," (",s.tipologia,")"))
+        ),
+        errs.struttura&&h("div",{style:{fontSize:10,color:"#ef4444",marginTop:2}},errs.struttura)
+      ),
+      h(Fld,{label:"Categoria",required:true},
+        h("select",{className:"inp"+(errs.categoria?" err":""),value:form.categoria,onChange:upd("categoria")},
+          h("option",{value:""},"— Seleziona —"),
+          ...SPESE_CAT.map(c=>h("option",{key:c},c))
+        ),
+        errs.categoria&&h("div",{style:{fontSize:10,color:"#ef4444",marginTop:2}},errs.categoria)
+      ),
+      h("div",{className:"g2"},
+        h("div",null,
+          h("div",{className:"fl"},"Data",h("span",{style:{color:"#ef4444",marginLeft:2}},"*")),
+          h("div",{className:"date-inp-wrap"+(errs.data?" err":"")},h("input",{type:"date",value:form.data,onChange:upd("data")})),
+          errs.data&&h("div",{style:{fontSize:10,color:"#ef4444",marginTop:2}},errs.data)
+        ),
+        h(Fld,{label:"Importo (€)",required:true},
+          h("input",{className:"inp"+(errs.importo?" err":""),type:"number",min:0,value:form.importo,onChange:upd("importo"),placeholder:"0"}),
+          errs.importo&&h("div",{style:{fontSize:10,color:"#ef4444",marginTop:2}},errs.importo)
+        )
+      ),
+      h(Fld,{label:"Descrizione / note"},
+        h("input",{className:"inp",value:form.descrizione||"",onChange:upd("descrizione"),placeholder:"Es. Fattura Enel marzo 2026"})
+      ),
+      h(Fld,{label:"Ricorrenza"},
+        h("select",{className:"inp",value:form.ricorrenza||"una-tantum",onChange:upd("ricorrenza")},
+          h("option",{value:"una-tantum"},"Una tantum"),
+          h("option",{value:"mensile"},"Mensile"),
+          h("option",{value:"trimestrale"},"Trimestrale"),
+          h("option",{value:"annuale"},"Annuale")
+        )
+      )
+    ),
+    h("div",{style:{display:"flex",gap:9,marginTop:14}},
+      h("button",{className:"btn",style:{flex:1,background:"#f3f4f6",color:"#374151",fontWeight:600},onClick:onClose},"Annulla"),
+      h("button",{className:"btn",style:{flex:2,background:"#ef4444",color:"#fff"},onClick:save},isEdit?"Salva modifiche":"Aggiungi spesa")
+    )
+  );
+}
+
+function emSpesa(){return{struttura:"",categoria:"",data:"",importo:"",descrizione:"",ricorrenza:"una-tantum"};}
+
+function ContabilitaTab({bookings,structs,spese,setSpese}){
+  const [cPeriodF,setCPeriodF]=useState("");
+  const [cPeriodT,setCPeriodT]=useState("");
+  const [cStruct,setCStruct]=useState("Tutte");
+  const [cTipo,setCTipo]=useState("Tutte");
+  const [cSource,setCSource]=useState("Tutte");
+  /* spese state */
+  const [showSpesaF,setShowSpesaF]=useState(false);
+  const [editSpesaId,setEditSpesaId]=useState(null);
+  const [spesaForm,setSpesaForm]=useState(()=>emSpesa());
+  const [spFilter,setSpFilter]=useState("Tutte");
+  const newSpesa=()=>{setSpesaForm(emSpesa());setEditSpesaId(null);setShowSpesaF(true);};
+  const editSpesa=sp=>{setSpesaForm({...sp});setEditSpesaId(sp.id);setShowSpesaF(true);};
+  const saveSpesa=()=>{
+    const d={...spesaForm,importo:+spesaForm.importo||0};
+    if(editSpesaId)setSpese(p=>p.map(s=>s.id===editSpesaId?{...d,id:editSpesaId}:s));
+    else setSpese(p=>[...p,{...d,id:"sp"+Date.now()}]);
+    setShowSpesaF(false);
+  };
+  const delSpesa=id=>setSpese(p=>p.filter(s=>s.id!==id));
+  const filtSpese=useMemo(()=>(spese||[]).filter(sp=>spFilter==="Tutte"||sp.struttura===spFilter||("__tutte__"===spFilter&&sp.struttura==="__tutte__")).sort((a,b)=>b.data.localeCompare(a.data)),[spese,spFilter]);
+  const totSpese=filtSpese.reduce((a,s)=>a+(+s.importo||0),0);
+  const sMap=useMemo(()=>Object.fromEntries(structs.map(s=>[s.id,s])),[structs]);
+  const filtered=useMemo(()=>bookings.filter(b=>{
+    if(b.status==="Cancellata")return false;
+    const s=sMap[b.structure];
+    if(cStruct!=="Tutte"&&b.structure!==cStruct)return false;
+    if(cTipo!=="Tutte"&&s?.tipologia!==cTipo)return false;
+    if(cSource!=="Tutte"&&b.source!==cSource)return false;
+    if(cPeriodF&&b.checkout<cPeriodF)return false;
+    if(cPeriodT&&b.checkin>cPeriodT)return false;
+    return true;
+  }),[bookings,cStruct,cTipo,cSource,cPeriodF,cPeriodT,sMap]);
+  const kpis=useMemo(()=>{
+    const tot=filtered.reduce((a,b)=>a+(b.total||0),0);
+    const incassato=filtered.reduce((a,b)=>a+totalPagato(b),0);
+    const notti=filtered.reduce((a,b)=>a+nts(b.checkin,b.checkout),0);
+    const costiAgenzia=filtered.reduce((a,b)=>a+totalCostiAgenzia(b),0);
+    const tassaSogg=filtered.reduce((a,b)=>a+(+b.tassaSoggiorno||0),0);
+    const netto=filtered.reduce((a,b)=>a+guadagnoNetto(b),0);
+    return{tot,incassato,daIncassare:tot-incassato,notti,saldati:filtered.filter(b=>isSaldo(b)).length,nPren:filtered.length,mediaPerNotte:notti>0?Math.round(tot/notti):0,costiAgenzia,tassaSogg,netto};
+  },[filtered]);
+  const perMese=useMemo(()=>{const m={};filtered.forEach(b=>{const k=b.checkin.slice(0,7);if(!m[k])m[k]={key:k,fatturato:0,incassato:0,pren:0,notti:0,costi:0,netto:0,tassa:0};m[k].fatturato+=(b.total||0);m[k].incassato+=totalPagato(b);m[k].pren++;m[k].notti+=nts(b.checkin,b.checkout);m[k].costi+=totalCostiAgenzia(b);m[k].netto+=guadagnoNetto(b);m[k].tassa+=(+b.tassaSoggiorno||0);});return Object.values(m).sort((a,b)=>a.key.localeCompare(b.key));},[filtered]);
+  const perStruttura=useMemo(()=>{const m={};filtered.forEach(b=>{const s=sMap[b.structure];const k=b.structure;if(!m[k])m[k]={id:k,name:s?.name||k,tipologia:s?.tipologia||"",fatturato:0,incassato:0,pren:0,notti:0,costi:0,netto:0,tassa:0};m[k].fatturato+=(b.total||0);m[k].incassato+=totalPagato(b);m[k].pren++;m[k].notti+=nts(b.checkin,b.checkout);m[k].costi+=totalCostiAgenzia(b);m[k].netto+=guadagnoNetto(b);m[k].tassa+=(+b.tassaSoggiorno||0);});return Object.values(m).sort((a,b)=>b.fatturato-a.fatturato);},[filtered,sMap]);
+  const perTipo=useMemo(()=>{const m={};filtered.forEach(b=>{const s=sMap[b.structure];const k=s?.tipologia||"Altro";if(!m[k])m[k]={tipo:k,fatturato:0,pren:0};m[k].fatturato+=(b.total||0);m[k].pren++;});return Object.values(m).sort((a,b)=>b.fatturato-a.fatturato);},[filtered,sMap]);
+  const perCanale=useMemo(()=>{const m={};filtered.forEach(b=>{const k=b.source;if(!m[k])m[k]={source:k,fatturato:0,pren:0};m[k].fatturato+=(b.total||0);m[k].pren++;});return Object.values(m).sort((a,b)=>b.fatturato-a.fatturato);},[filtered]);
+  const maxFatt=Math.max(...perStruttura.map(x=>x.fatturato),1);
+  const maxMese=Math.max(...perMese.map(x=>x.fatturato),1);
+  const hasFilters=cStruct!=="Tutte"||cTipo!=="Tutte"||cSource!=="Tutte"||cPeriodF||cPeriodT;
+  function Row({label,val,sub}){return h("div",{className:"row",style:{padding:"7px 0",borderBottom:"1px solid #f1f5f9"}},h("div",null,h("div",{style:{fontSize:13,color:"#374151"}},label),sub&&h("div",{style:{fontSize:10,color:"#9ca3af"}},sub)),h("div",{style:{fontWeight:700,fontSize:14,color:"#111827"}},val));}
+  return h("div",{style:{padding:"12px 16px",paddingBottom:90}},
+    h("div",{style:{background:"#fff",borderRadius:12,padding:"12px 14px",marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,.06)"}},
+      h("div",{style:{fontSize:12,fontWeight:700,color:"#374151",marginBottom:8}},"🔍 Filtri"),
+      h("div",{style:{display:"flex",gap:7,flexWrap:"wrap",marginBottom:7}},
+        h("select",{className:"sd",value:cStruct,onChange:e=>setCStruct(e.target.value)},h("option",null,"Tutte le strutture"),...structs.map(s=>h("option",{key:s.id,value:s.id},s.name))),
+        h("select",{className:"sd",value:cTipo,onChange:e=>setCTipo(e.target.value)},h("option",null,"Tutte le tipologie"),...TIPOLOGIE.map(t=>h("option",{key:t},t))),
+        h("select",{className:"sd",value:cSource,onChange:e=>setCSource(e.target.value)},h("option",null,"Tutti i canali"),...SOURCES.map(s=>h("option",{key:s},s)))
+      ),
+      h("div",{style:{display:"flex",gap:7,flexWrap:"wrap",alignItems:"center"}},
+        h("div",null,h("div",{style:{fontSize:9,color:"#6b7280",marginBottom:2}},"DAL"),h("div",{className:"date-inp-wrap"},h("input",{type:"date",value:cPeriodF,onChange:e=>{setCPeriodF(e.target.value);if(cPeriodT&&e.target.value>=cPeriodT)setCPeriodT("");},style:{padding:"6px 9px",fontSize:12}}))),
+        h("div",null,h("div",{style:{fontSize:9,color:"#6b7280",marginBottom:2}},"AL"),h("div",{className:"date-inp-wrap"},h("input",{type:"date",value:cPeriodT,min:cPeriodF||undefined,onChange:e=>setCPeriodT(e.target.value),style:{padding:"6px 9px",fontSize:12}}))),
+        hasFilters&&h("button",{onClick:()=>{setCStruct("Tutte");setCTipo("Tutte");setCSource("Tutte");setCPeriodF("");setCPeriodT("");},style:{background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:8,padding:"6px 10px",fontSize:11,fontWeight:700,cursor:"pointer",marginTop:14}},"✕ Reset")
+      )
+    ),
+    h("div",{className:"g2",style:{marginBottom:10}},
+      h("div",{className:"kpi",style:{borderLeft:"4px solid #1d4ed8"}},h("div",{className:"kpi-val",style:{color:"#1d4ed8"}},eur(kpis.tot)),h("div",{className:"kpi-lbl"},"Fatturato totale")),
+      h("div",{className:"kpi",style:{borderLeft:"4px solid #10b981"}},h("div",{className:"kpi-val",style:{color:"#10b981"}},eur(kpis.incassato)),h("div",{className:"kpi-lbl"},"Già incassato"))
+    ),
+    h("div",{className:"g2",style:{marginBottom:10}},
+      h("div",{className:"kpi",style:{borderLeft:"4px solid #f59e0b"}},h("div",{className:"kpi-val",style:{color:"#f59e0b"}},eur(kpis.daIncassare)),h("div",{className:"kpi-lbl"},"Da incassare")),
+      h("div",{className:"kpi",style:{borderLeft:"4px solid #8b5cf6"}},h("div",{className:"kpi-val",style:{color:"#8b5cf6"}},kpis.nPren),h("div",{className:"kpi-lbl"},"Prenotazioni"))
+    ),
+    h("div",{className:"g3",style:{marginBottom:16}},
+      h("div",{className:"kpi"},h("div",{className:"kpi-val"},kpis.notti),h("div",{className:"kpi-lbl"},"Notti totali")),
+      h("div",{className:"kpi"},h("div",{className:"kpi-val"},eur(kpis.mediaPerNotte)),h("div",{className:"kpi-lbl"},"€ / notte")),
+      h("div",{className:"kpi"},h("div",{className:"kpi-val"},kpis.saldati),h("div",{className:"kpi-lbl"},"Saldate ✅"))
+    ),
+    /* KPI tassa soggiorno + costi + netto */
+    (kpis.tassaSogg>0)&&h("div",{className:"kpi",style:{borderLeft:"4px solid #6366f1",marginBottom:10}},h("div",{className:"kpi-val",style:{color:"#6366f1"}},eur(kpis.tassaSogg)),h("div",{className:"kpi-lbl"},"🏛️ Tassa soggiorno incassata (da girare al Comune)")),
+    (kpis.costiAgenzia<0)&&h("div",{className:"kpi",style:{borderLeft:"4px solid #ef4444",marginBottom:10}},h("div",{className:"kpi-val",style:{color:"#ef4444"}},eur(kpis.costiAgenzia)),h("div",{className:"kpi-lbl"},"Tot. costi agenzia")),
+    h("div",{className:"kpi",style:{borderLeft:"4px solid #059669",marginBottom:16}},h("div",{className:"kpi-val",style:{color:"#059669"}},eur(kpis.netto)),h("div",{className:"kpi-lbl"},"💚 Guadagno netto (esclusa tassa soggiorno e costi)")),
+    
+    kpis.tot>0&&h("div",{className:"kpi",style:{marginBottom:16}},
+      h("div",{className:"row",style:{marginBottom:6}},h("div",{style:{fontSize:12,fontWeight:700,color:"#374151"}},"Stato incassi"),h("div",{style:{fontSize:12,color:"#6b7280"}},Math.round(kpis.incassato/kpis.tot*100),"% incassato")),
+      h("div",{className:"bar-wrap"},h("div",{className:"bar-fill",style:{width:Math.round(kpis.incassato/kpis.tot*100)+"%",background:"#10b981"}})),
+      h("div",{style:{display:"flex",justifyContent:"space-between",fontSize:10,color:"#6b7280",marginTop:4}},h("span",{style:{color:"#10b981",fontWeight:700}},"Incassato: ",eur(kpis.incassato)),h("span",{style:{color:"#f59e0b",fontWeight:700}},"Mancante: ",eur(kpis.daIncassare)))
+    ),
+    perMese.length>0&&h(Fragment,null,
+      h("div",{className:"section-hd"},"📅 Fatturato per mese"),
+      h("div",{style:{background:"#fff",borderRadius:12,padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,.06)",marginBottom:16}},
+        ...perMese.map(m=>{const[y,mo]=m.key.split("-");const pct=Math.round(m.fatturato/maxMese*100);const pctN=m.fatturato>0?Math.round(m.netto/m.fatturato*100):0;
+          return h("div",{key:m.key,style:{marginBottom:12}},
+            h("div",{className:"row",style:{marginBottom:3}},h("span",{style:{fontSize:12,fontWeight:600,color:"#374151"}},MONTHS_SHORT[+mo-1]+" "+y),h("div",{style:{display:"flex",gap:8,alignItems:"center"}},h("span",{style:{fontSize:10,color:"#9ca3af"}},m.pren,"pren · ",m.notti,"n"),h("span",{style:{fontSize:13,fontWeight:800,color:"#1d4ed8"}},eur(m.fatturato)))),
+            h("div",{className:"bar-wrap"},h("div",{className:"bar-fill",style:{width:pct+"%",background:"linear-gradient(90deg,#1d4ed8,#60a5fa)"}})),
+            h("div",{className:"row",style:{marginTop:4,flexWrap:"wrap",gap:6}},
+              m.tassa>0&&h("span",{style:{fontSize:10,color:"#6366f1",fontWeight:600}},"🏛️ Tassa: "+eur(m.tassa)),
+              m.costi<0&&h("span",{style:{fontSize:10,color:"#ef4444",fontWeight:600}},"Costi: "+eur(m.costi)),
+              h("span",{style:{fontSize:11,fontWeight:800,color:"#059669"}},"💚 Netto: "+eur(m.netto)+(pctN?(" ("+pctN+"%)"):"")),
+            )
+          );
+        })
+      )
+    ),
+    perStruttura.length>0&&h(Fragment,null,
+      h("div",{className:"section-hd"},"🏨 Fatturato per struttura"),
+      h("div",{style:{background:"#fff",borderRadius:12,padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,.06)",marginBottom:16}},
+        ...perStruttura.map(s=>{const pct=Math.round(s.fatturato/maxFatt*100);
+          return h("div",{key:s.id,style:{marginBottom:12}},
+            h("div",{className:"row",style:{marginBottom:3}},h("div",null,h("span",{style:{fontSize:12,fontWeight:700,color:"#374151"}},s.name),h("span",{style:{fontSize:10,color:"#9ca3af",marginLeft:6}},s.tipologia)),h("div",{style:{display:"flex",gap:8,alignItems:"center"}},h("span",{style:{fontSize:10,color:"#9ca3af"}},s.pren,"pren"),h("span",{style:{fontSize:13,fontWeight:800,color:"#1d4ed8"}},eur(s.fatturato)))),
+            h("div",{className:"bar-wrap"},h("div",{className:"bar-fill",style:{width:pct+"%",background:"linear-gradient(90deg,#6366f1,#a78bfa)"}})),
+            h("div",{className:"row",style:{marginTop:4,flexWrap:"wrap",gap:6}},
+              s.tassa>0&&h("span",{style:{fontSize:10,color:"#6366f1",fontWeight:600}},"🏛️ Tassa: "+eur(s.tassa)),
+              s.costi<0&&h("span",{style:{fontSize:10,color:"#ef4444",fontWeight:600}},"Costi: "+eur(s.costi)),
+              h("span",{style:{fontSize:11,fontWeight:800,color:"#059669"}},"💚 Netto: "+eur(s.netto))
+            )
+          );
+        })
+      )
+    ),
+    perTipo.length>0&&h(Fragment,null,
+      h("div",{className:"section-hd"},"🏠 Per tipologia"),
+      h("div",{style:{background:"#fff",borderRadius:12,padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,.06)",marginBottom:16}},
+        h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}},
+          ...perTipo.map(t=>h("div",{key:t.tipo,style:{background:"#f8fafc",borderRadius:9,padding:"10px 12px"}},
+            h("div",{style:{fontSize:11,fontWeight:700,color:"#374151"}},t.tipo),
+            h("div",{style:{fontSize:16,fontWeight:800,color:"#1d4ed8",margin:"2px 0"}},eur(t.fatturato)),
+            h("div",{style:{fontSize:10,color:"#9ca3af"}},t.pren," prenotazioni")
+          ))
+        )
+      )
+    ),
+    perCanale.length>0&&h(Fragment,null,
+      h("div",{className:"section-hd"},"📡 Per canale"),
+      h("div",{style:{background:"#fff",borderRadius:12,padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,.06)",marginBottom:16}},
+        ...perCanale.map(c=>h(Row,{key:c.source,label:si(c.source)+" "+c.source,sub:c.pren+" prenotazioni",val:eur(c.fatturato)}))
+      )
+    ),
+    filtered.length===0&&h("div",{style:{textAlign:"center",padding:40,color:"#9ca3af",fontSize:13}},"Nessun dato con i filtri selezionati"),
+
+    /* ── FLUSSO DI CASSA MENSILE ── */
+    perMese.length>0&&h(Fragment,null,
+      h("div",{className:"section-hd"},"💸 Flusso di cassa mensile"),
+      h("div",{style:{background:"#fff",borderRadius:12,padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,.06)",marginBottom:16}},
+        h("div",{style:{fontSize:10,color:"#6b7280",marginBottom:10}},"Confronto tra fatturato (totale da incassare) e già incassato per mese di check-in."),
+        ...perMese.map(m=>{
+          const[y,mo]=m.key.split("-");
+          const pctInc=m.fatturato>0?Math.round(m.incassato/m.fatturato*100):0;
+          const daInc=m.fatturato-m.incassato;
+          return h("div",{key:m.key,style:{marginBottom:14,paddingBottom:14,borderBottom:"1px solid #f1f5f9"}},
+            h("div",{className:"row",style:{marginBottom:6}},
+              h("span",{style:{fontSize:13,fontWeight:700,color:"#1e3a5f"}},MONTHS_SHORT[+mo-1]+" "+y),
+              h("div",{style:{display:"flex",gap:10,alignItems:"center"}},
+                h("span",{style:{fontSize:10,color:"#10b981",fontWeight:700}},"✅ "+eur(m.incassato)),
+                daInc>0&&h("span",{style:{fontSize:10,color:"#f59e0b",fontWeight:700}},"⏳ "+eur(daInc))
+              )
+            ),
+            h("div",{style:{position:"relative",height:18,borderRadius:9,background:"#e5e7eb",overflow:"hidden"}},
+              h("div",{style:{position:"absolute",left:0,top:0,height:"100%",width:pctInc+"%",background:"linear-gradient(90deg,#10b981,#34d399)",borderRadius:9,transition:"width .4s"}}),
+              h("div",{style:{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:pctInc>55?"#fff":"#374151"}},"Incassato: "+pctInc+"%")
+            ),
+            h("div",{style:{display:"flex",justifyContent:"space-between",fontSize:10,color:"#9ca3af",marginTop:4}},
+              h("span",null,"Fatturato totale: ",h("b",{style:{color:"#1d4ed8"}},eur(m.fatturato))),
+              daInc>0
+                ?h("span",{style:{color:"#f59e0b",fontWeight:600}},"Da incassare: "+eur(daInc))
+                :h("span",{style:{color:"#10b981",fontWeight:600}},"✅ Completamente incassato")
+            )
+          );
+        })
+      )
+    ),
+
+    /* ── SPESE STRUTTURE ── */
+    h(Fragment,null,
+      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
+        h("div",{className:"section-hd",style:{margin:0}},"🔧 Spese strutture"),
+        h("button",{onClick:newSpesa,style:{background:"#ef4444",color:"#fff",border:"none",borderRadius:10,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}},"＋ Aggiungi spesa")
+      ),
+      h("div",{style:{background:"#fff",borderRadius:12,padding:"12px 14px",boxShadow:"0 1px 4px rgba(0,0,0,.06)",marginBottom:16}},
+        /* filtro struttura */
+        h("div",{style:{display:"flex",gap:7,flexWrap:"wrap",marginBottom:10,alignItems:"center"}},
+          h("select",{className:"sd",value:spFilter,onChange:e=>setSpFilter(e.target.value)},
+            h("option",{value:"Tutte"},"Tutte le strutture"),
+            h("option",{value:"__tutte__"},"🏘 Spese comuni"),
+            ...structs.map(s=>h("option",{key:s.id,value:s.id},s.name))
+          ),
+          h("div",{style:{marginLeft:"auto",fontSize:13,fontWeight:800,color:"#ef4444"}},
+            (spese||[]).length>0&&("Tot: "+eur(totSpese))
+          )
+        ),
+        /* riepilogo per struttura */
+        (spese||[]).length>0&&(()=>{
+          const perStr={};
+          (spese||[]).forEach(sp=>{
+            const k=sp.struttura==="__tutte__"?"__tutte__":sp.struttura;
+            if(!perStr[k])perStr[k]={tot:0,n:0};
+            perStr[k].tot+=(+sp.importo||0);perStr[k].n++;
+          });
+          const totAll=Object.values(perStr).reduce((a,v)=>a+v.tot,0);
+          return h("div",{style:{background:"#fff5f5",borderRadius:10,padding:"10px 12px",marginBottom:10,border:"1px solid #fecaca"}},
+            h("div",{style:{fontSize:10,fontWeight:700,color:"#991b1b",marginBottom:6}},"📊 Riepilogo spese per struttura (totale: "+eur(totAll)+")"),
+            h("div",{style:{display:"flex",flexDirection:"column",gap:4}},
+              ...Object.entries(perStr).sort((a,b)=>b[1].tot-a[1].tot).map(([k,v])=>
+                h("div",{key:k,className:"row"},
+                  h("span",{style:{fontSize:11,color:"#374151"}},k==="__tutte__"?"🏘 Spese comuni":(sMap[k]?.name||k)),
+                  h("div",{style:{display:"flex",gap:8,alignItems:"center"}},
+                    h("span",{style:{fontSize:10,color:"#9ca3af"}},v.n," voci"),
+                    h("span",{style:{fontSize:12,fontWeight:700,color:"#dc2626"}},eur(v.tot))
+                  )
+                )
+              )
+            )
+          );
+        })(),
+        /* lista spese */
+        filtSpese.length===0
+          ?h("div",{style:{textAlign:"center",padding:"20px 0",color:"#9ca3af",fontSize:12,fontStyle:"italic"}},"Nessuna spesa registrata — premi ＋ per aggiungere")
+          :h("div",{style:{display:"flex",flexDirection:"column",gap:8}},
+            ...filtSpese.map(sp=>
+              h("div",{key:sp.id,style:{background:"#fafafa",borderRadius:10,padding:"10px 12px",border:"1.5px solid #fecaca",display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}},
+                h("div",{style:{flex:1}},
+                  h("div",{style:{fontSize:12,fontWeight:700,color:"#374151"}},sp.categoria),
+                  h("div",{style:{fontSize:11,color:"#6b7280",marginTop:2}},
+                    sp.struttura==="__tutte__"?"🏘 Comune":(sMap[sp.struttura]?.name||sp.struttura),
+                    " · ",fmtS(sp.data),
+                    sp.ricorrenza&&sp.ricorrenza!=="una-tantum"&&h("span",{style:{background:"#e0e7ff",color:"#4f46e5",borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:700,marginLeft:4}},sp.ricorrenza)
+                  ),
+                  sp.descrizione&&h("div",{style:{fontSize:10,color:"#9ca3af",marginTop:2,fontStyle:"italic"}},sp.descrizione)
+                ),
+                h("div",{style:{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5}},
+                  h("div",{style:{fontSize:14,fontWeight:800,color:"#dc2626"}},eur(sp.importo)),
+                  h("div",{style:{display:"flex",gap:5}},
+                    h("button",{onClick:()=>editSpesa(sp),style:{background:"#e0e7ff",color:"#4f46e5",border:"none",borderRadius:7,padding:"3px 9px",fontSize:10,fontWeight:700,cursor:"pointer"}},"✏️"),
+                    h("button",{onClick:()=>delSpesa(sp.id),style:{background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:7,padding:"3px 9px",fontSize:10,fontWeight:700,cursor:"pointer"}},"🗑")
+                  )
+                )
+              )
+            )
+          )
+      )
+    ),
+
+    filtered.length>0&&h("div",{style:{marginBottom:16}},
+      h("button",{onClick:()=>{const desc=[cStruct!=="Tutte"&&structs.find(s=>s.id===cStruct)?.name,cTipo!=="Tutte"&&cTipo,cSource!=="Tutte"&&cSource,cPeriodF&&"dal "+fmtS(cPeriodF),cPeriodT&&"al "+fmtS(cPeriodT)].filter(Boolean).join(" · ");printContabilita(filtered,kpis,perMese,perStruttura,perTipo,perCanale,sMap,desc);},style:{width:"100%",background:"linear-gradient(135deg,#0f2444,#1d4ed8)",color:"#fff",border:"none",borderRadius:12,padding:"13px",fontSize:14,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 16px rgba(29,78,216,.35)"}},"\ud83d\udda8\ufe0f Stampa Report PDF")
+    ),
+
+    /* MODAL SPESA */
+    showSpesaF&&h(Mod,{onClose:()=>setShowSpesaF(false)},h(SpesaForm,{form:spesaForm,setForm:setSpesaForm,onSave:saveSpesa,onClose:()=>setShowSpesaF(false),isEdit:!!editSpesaId,structs}))
+  );
+}
+
+/* ══ GANTT MULTI-MESE ══ */
+function buildDays(y,m,n){
+  const days=[];
+  for(let i=0;i<n;i++){const cy=y+Math.floor((m+i)/12),cm=(m+i)%12,dim=new Date(cy,cm+1,0).getDate();for(let d=1;d<=dim;d++)days.push(new Date(cy,cm,d));}
+  return days;
+}
+
+/* ══════════ MAIN APP ══════════ */
+function App(){
+  const init=loadData();
+  const [structs,setStructs]=useState(init.structs);
+  const [bookings,setBookings]=useState(init.bookings);
+  const [spese,setSpese]=useState(init.spese||[]);
+  const [tab,setTab]=useState("disponibilita");
+  const [selB,setSelB]=useState(null);
+  const [showBF,setShowBF]=useState(false);
+  const [editBId,setEditBId]=useState(null);
+  const [bForm,setBForm]=useState(()=>emBk(init.structs));
+  const [selS,setSelS]=useState(null);
+  const [showSF,setShowSF]=useState(false);
+  const [editSId,setEditSId]=useState(null);
+  const [sForm,setSForm]=useState(emSt());
+  const [confDel,setConfDel]=useState(null);
+  const [showSettings,setShowSettings]=useState(false);
+  /* gantt */
+  const [gY,setGY]=useState(new Date().getFullYear());
+  const [gM,setGM]=useState(new Date().getMonth());
+  const [gSrch,setGSrch]=useState("");
+  const [hlF,setHlF]=useState("");
+  const [hlT,setHlT]=useState("");
+  const [fAn,setFAn]=useState(false);
+  const [fTp,setFTp]=useState("Tutte");
+  const [fPo,setFPo]=useState(0);
+  const [fLoc,setFLoc]=useState("Tutte");
+  /* list */
+  const [lSrch,setLSrch]=useState("");
+  const [lSt,setLSt]=useState("Tutti");
+  const [lStruct,setLStruct]=useState("Tutte");
+  const [lDateF,setLDateF]=useState("");
+  const [lDateT,setLDateT]=useState("");
+  const [lArrivo,setLArrivo]=useState("");
+  const [lPag,setLPag]=useState("Tutti");
+
+  /* gantt scroll sync */
+  const scrollTopRef=useRef(null);
+  const scrollBotRef=useRef(null);
+  const syncingRef=useRef(false);
+
+  useEffect(()=>saveData(structs,bookings,spese),[structs,bookings,spese]);
+  useFirebaseSync(setStructs,setBookings,setSpese);
+
+  const sMap=useMemo(()=>Object.fromEntries(structs.map(s=>[s.id,s])),[structs]);
+  const sN=id=>sMap[id]?.name||id;
+  const stats=useMemo(()=>({
+    tot:bookings.length,
+    conf:bookings.filter(b=>b.status==="Confermata").length,
+    saldati:bookings.filter(b=>isSaldo(b)).length,
+    parziali:bookings.filter(b=>isParz(b)).length,
+    daSaldare:bookings.filter(b=>b.status!=="Cancellata"&&(b.acconti||[]).length===0).length,
+  }),[bookings]);
+
+  /* arrivi e partenze oggi */
+  const todayMovements=useMemo(()=>{
+    const arrivi=bookings.filter(b=>b.status!=="Cancellata"&&b.checkin===TODAY);
+    const partenze=bookings.filter(b=>b.status!=="Cancellata"&&b.checkout===TODAY);
+    /* stesso giorno: strutture con checkout E checkin oggi (rotazione) */
+    const rotazioniIds=new Set(arrivi.map(b=>b.structure).filter(sid=>partenze.some(b=>b.structure===sid)));
+    return{arrivi,partenze,rotazioniIds};
+  },[bookings]);
+
+  /* ops */
+  const newB=()=>{setBForm(emBk(structs));setEditBId(null);setShowBF(true);};
+  const editB=b=>{setBForm({...b,acconti:[...(b.acconti||[])]});setEditBId(b.id);setShowBF(true);setSelB(null);};
+  const saveB=()=>{
+    const totale=(+bForm.prezzoApp||0)+(+bForm.tassaSoggiorno||0)+(+bForm.supplAria||0)+(+bForm.supplBiancheria||0)+(!!bForm.animali?(+bForm.supplAnimali||0):0);
+    const d={...bForm,total:totale,persons:+bForm.persons,acconti:(bForm.acconti||[]).map(a=>({...a,importo:+a.importo||0}))};
+    if(editBId)setBookings(p=>p.map(b=>b.id===editBId?{...d,id:editBId}:b));
+    else setBookings(p=>[...p,{...d,id:Date.now()}]);
+    setShowBF(false);
+  };
+  const delB=id=>{setBookings(p=>p.filter(b=>b.id!==id));setSelB(null);};
+  const newS=()=>{setSForm(emSt());setEditSId(null);setShowSF(true);};
+  const editS=s=>{setSForm({...s,servizi:[...s.servizi]});setEditSId(s.id);setShowSF(true);setSelS(null);};
+  const saveS=()=>{
+    if(!sForm.name.trim())return;
+    const d={...sForm,posti:+sForm.posti,camere:+sForm.camere};
+    if(editSId)setStructs(p=>p.map(s=>s.id===editSId?{...d,id:editSId}:s));
+    else setStructs(p=>[...p,{...d,id:"s"+Date.now()}]);
+    setShowSF(false);
+  };
+  const delS=id=>{setStructs(p=>p.filter(s=>s.id!==id));setBookings(p=>p.filter(b=>b.structure!==id));setSelS(null);setConfDel(null);};
+
+  /* gantt */
+  const NUM_MONTHS=6;
+  const allDays=useMemo(()=>buildDays(gY,gM,NUM_MONTHS),[gY,gM]);
+  const monthSegs=useMemo(()=>{const segs=[];let cur=null;allDays.forEach(day=>{const mk=day.getFullYear()+"-"+day.getMonth();if(!cur||cur.key!==mk){cur={key:mk,label:MONTHS[day.getMonth()]+" "+day.getFullYear(),count:1};segs.push(cur);}else cur.count++;});return segs;},[allDays]);
+  const fSt=useMemo(()=>{
+    const base=structs.filter(s=>{
+      const mn=s.name.toLowerCase().includes(gSrch.toLowerCase())||s.tipologia.toLowerCase().includes(gSrch.toLowerCase());
+      return mn&&(!fAn||s.animali)&&(fTp==="Tutte"||s.tipologia===fTp)&&(fPo===0||s.posti>=fPo)&&(fLoc==="Tutte"||(s.localita||"").toLowerCase()===fLoc.toLowerCase());
+    }).sort((a,b)=>a.name.localeCompare(b.name,"it"));
+    /* se periodo cercato attivo, mostra SOLO strutture libere */
+    if(hlF&&hlT&&hlF<hlT) return base.filter(s=>freeSet2(s,base));
+    return base;
+  },[structs,gSrch,fAn,fTp,fPo,fLoc,hlF,hlT,bookings]);
+  /* helper separato per evitare dipendenza circolare */
+  function freeSet2(s,_){if(!hlF||!hlT||hlF>=hlT)return true;return!bookings.filter(b=>b.structure===s.id&&b.status!=="Cancellata").some(b=>b.checkin<hlT&&b.checkout>hlF);}
+  const freeSet=useMemo(()=>{if(!hlF||!hlT||hlF>=hlT)return new Set();const free=new Set();structs.filter(s=>{const mn=s.name.toLowerCase().includes(gSrch.toLowerCase())||s.tipologia.toLowerCase().includes(gSrch.toLowerCase());return mn&&(!fAn||s.animali)&&(fTp==="Tutte"||s.tipologia===fTp)&&(fPo===0||s.posti>=fPo)&&(fLoc==="Tutte"||(s.localita||"").toLowerCase()===fLoc.toLowerCase());}).forEach(s=>{if(!bookings.filter(b=>b.structure===s.id&&b.status!=="Cancellata").some(b=>b.checkin<hlT&&b.checkout>hlF))free.add(s.id);});return free;},[bookings,structs,gSrch,fAn,fTp,fPo,fLoc,hlF,hlT]);
+  const cellB=(sid,day)=>{const d=ds(day);return bookings.find(b=>b.structure===sid&&b.status!=="Cancellata"&&d>=b.checkin&&d<b.checkout)||null;};
+  const isHL=day=>{if(!hlF||!hlT)return false;const d=ds(day);return d>=hlF&&d<hlT;};
+  const prev=()=>{if(gM===0){setGM(11);setGY(y=>y-1);}else setGM(m=>m-1);};
+  const next=()=>{if(gM===11){setGM(0);setGY(y=>y+1);}else setGM(m=>m+1);};
+
+  /* scroll sync top <-> bottom */
+  function onScrollBot(e){if(syncingRef.current)return;syncingRef.current=true;if(scrollTopRef.current)scrollTopRef.current.scrollLeft=e.target.scrollLeft;syncingRef.current=false;}
+  function onScrollTop(e){if(syncingRef.current)return;syncingRef.current=true;if(scrollBotRef.current)scrollBotRef.current.scrollLeft=e.target.scrollLeft;syncingRef.current=false;}
+
+  const COL_W=28,NAME_W=120;
+  const tableW=NAME_W+allDays.length*COL_W;
+
+  /* list */
+  const filtBk=useMemo(()=>bookings.filter(b=>{
+    const n=sN(b.structure);
+    const mS=b.client.toLowerCase().includes(lSrch.toLowerCase())||n.toLowerCase().includes(lSrch.toLowerCase())||b.room.toLowerCase().includes(lSrch.toLowerCase());
+    const mSt=lSt==="Tutti"||b.status===lSt;
+    const mStr=lStruct==="Tutte"||b.structure===lStruct;
+    const mArr=!lArrivo||b.checkin===lArrivo;
+    const mPer=(!lDateF||b.checkout>lDateF)&&(!lDateT||b.checkin<lDateT);
+    /* FILTRO PAGAMENTO CORRETTO */
+    let mPag=true;
+    if(lPag==="Saldato") mPag=isSaldo(b);
+    else if(lPag==="Parziale") mPag=isParz(b);
+    else if(lPag==="Non pagato") mPag=(b.acconti||[]).length===0&&b.status!=="Cancellata";
+    else if(lPag==="Cancellata") mPag=b.status==="Cancellata";
+    return mS&&mSt&&mStr&&mArr&&mPer&&mPag;
+  }).sort((a,b)=>toD(a.checkin)-toD(b.checkin)),[bookings,lSrch,lSt,lStruct,lArrivo,lDateF,lDateT,lPag,structs]);
+
+  const resetFilt=()=>{setLSrch("");setLSt("Tutti");setLStruct("Tutte");setLDateF("");setLDateT("");setLArrivo("");setLPag("Tutti");};
+  const hasF=lSrch||lSt!=="Tutti"||lStruct!=="Tutte"||lDateF||lDateT||lArrivo||lPag!=="Tutti";
+  const filtDesc=()=>{const p=[];if(lStruct!=="Tutte")p.push(sN(lStruct));if(lSt!=="Tutti")p.push(lSt);if(lDateF||lDateT)p.push([lDateF&&fmtS(lDateF),lDateT&&fmtS(lDateT)].filter(Boolean).join(" - "));if(lArrivo)p.push("arrivo "+fmtS(lArrivo));if(lPag!=="Tutti")p.push(lPag);return p.join(", ");};
+
+  return h("div",{style:{background:"#eef2f7",minHeight:"100vh",paddingBottom:80}},
+    /* HEADER */
+    h("div",{style:{background:"linear-gradient(135deg,#0f2444,#1d4ed8)",padding:"18px 16px 14px",color:"#fff"}},
+      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}},
+        h("div",null,h("div",{style:{fontSize:20,fontWeight:800,letterSpacing:-.5}},"Gestione Prenotazioni")),
+        h("div",{style:{display:"flex",gap:8}},
+          h("button",{onClick:()=>setShowSettings(true),style:{background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.3)",color:"#fff",borderRadius:12,padding:"8px 12px",fontSize:16,cursor:"pointer",lineHeight:1}},"\u2699\ufe0f"),
+          h("button",{onClick:newB,style:{background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.3)",color:"#fff",borderRadius:12,padding:"8px 14px",fontSize:13,fontWeight:700,cursor:"pointer"}},"＋ Prenota")
+        )
+      ),
+      h("div",{style:{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:5,marginBottom:2}},
+        ...[
+          ["Prenotaz.",stats.tot,"rgba(255,255,255,.18)",null,null],
+          ["Confermate",stats.conf,"rgba(16,185,129,.32)",null,null],
+          ["Saldate ✅",stats.saldati,"rgba(16,185,129,.45)","lista","Saldato"],
+          ["Parziale ⚠️",stats.parziali,"rgba(245,158,11,.32)","lista","Parziale"],
+          ["Da saldare ❌",stats.daSaldare,"rgba(239,68,68,.28)","lista","Non pagato"],
+        ].map(([l,v,c,goTab,goFilter])=>
+          h("div",{key:l,onClick:()=>{if(goTab){setTab(goTab);if(goFilter){setLPag(goFilter);setLDateF("");setLDateT("");setLArrivo("");}}},style:{background:c,borderRadius:9,padding:"7px 3px",textAlign:"center",cursor:goTab?"pointer":"default",transition:"opacity .15s"},
+            onMouseEnter:goTab?e=>e.currentTarget.style.opacity=".8":null,
+            onMouseLeave:goTab?e=>e.currentTarget.style.opacity="1":null},
+            h("div",{style:{fontSize:17,fontWeight:800}},v),
+            h("div",{style:{fontSize:8,opacity:.85,textTransform:"uppercase",letterSpacing:.3,lineHeight:1.2,marginTop:2}},l),
+            goTab&&h("div",{style:{fontSize:7,opacity:.7,marginTop:1}},"→ vedi")
+          )
+        )
+      )
+    ),
+
+    /* ── ARRIVI & PARTENZE OGGI ── */
+    (todayMovements.arrivi.length>0||todayMovements.partenze.length>0)&&h("div",{style:{background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"10px 14px"}},
+      h("div",{style:{fontSize:11,fontWeight:800,color:"#1e3a5f",marginBottom:8,textTransform:"uppercase",letterSpacing:.5}},"📍 Movimenti di oggi — ",fmtL(TODAY)),
+      h("div",{style:{display:"flex",gap:8,flexDirection:"column"}},
+        todayMovements.arrivi.length>0&&h("div",null,
+          h("div",{style:{fontSize:10,fontWeight:700,color:"#059669",marginBottom:5}},"🟢 ARRIVI ("+(todayMovements.arrivi.length)+")"),
+          h("div",{style:{display:"flex",flexDirection:"column",gap:5}},
+            ...todayMovements.arrivi.map(b=>{
+              const isRot=todayMovements.rotazioniIds.has(b.structure);
+              return h("div",{key:b.id,onClick:()=>setSelB(b),style:{background:isRot?"#fef9c3":"#f0fdf4",borderRadius:9,padding:"7px 10px",border:"1.5px solid "+(isRot?"#fde047":"#bbf7d0"),cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}},
+                h("div",null,
+                  h("div",{style:{fontSize:12,fontWeight:700,color:"#065f46"}},b.client,(isRot?h("span",{style:{background:"#fde047",color:"#713f12",borderRadius:5,padding:"1px 6px",fontSize:9,fontWeight:700,marginLeft:6}},"🔄 ROTAZIONE"):null)),
+                  h("div",{style:{fontSize:10,color:"#6b7280"}},sN(b.structure)," · ",b.persons," pers.",(b.animali?" · 🐾 "+b.nAnimali:""))
+                ),
+                h("div",{style:{textAlign:"right"}},
+                  h("div",{style:{fontSize:10,fontWeight:700,color:isSaldo(b)?"#059669":"#f97316"}},isSaldo(b)?"✅ Saldato":"⚠️ "+eur((b.total||0)-totalPagato(b))+" da saldare"),
+                  h("div",{style:{fontSize:9,color:"#9ca3af"}},si(b.source)," ",b.source)
+                )
+              );
+            })
+          )
+        ),
+        todayMovements.partenze.length>0&&h("div",null,
+          h("div",{style:{fontSize:10,fontWeight:700,color:"#dc2626",marginBottom:5}},"🔴 PARTENZE ("+(todayMovements.partenze.length)+")"),
+          h("div",{style:{display:"flex",flexDirection:"column",gap:5}},
+            ...todayMovements.partenze.map(b=>{
+              const isRot=todayMovements.rotazioniIds.has(b.structure);
+              return h("div",{key:b.id,onClick:()=>setSelB(b),style:{background:isRot?"#fef9c3":"#fff1f2",borderRadius:9,padding:"7px 10px",border:"1.5px solid "+(isRot?"#fde047":"#fecdd3"),cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}},
+                h("div",null,
+                  h("div",{style:{fontSize:12,fontWeight:700,color:"#991b1b"}},b.client,(isRot?h("span",{style:{background:"#fde047",color:"#713f12",borderRadius:5,padding:"1px 6px",fontSize:9,fontWeight:700,marginLeft:6}},"🔄 ROTAZIONE"):null)),
+                  h("div",{style:{fontSize:10,color:"#6b7280"}},sN(b.structure)," · ",b.persons," pers.")
+                ),
+                h("div",{style:{textAlign:"right"}},
+                  h("div",{style:{fontSize:10,fontWeight:700,color:isSaldo(b)?"#059669":"#f97316"}},isSaldo(b)?"✅ Saldato":"⚠️ "+eur((b.total||0)-totalPagato(b))+" da saldare"),
+                  h("div",{style:{fontSize:9,color:"#9ca3af"}},nts(b.checkin,b.checkout)," notti")
+                )
+              );
+            })
+          )
+        )
+      )
+    ),
+
+    /* TABS */
+    h("div",{className:"tab-bar"},
+      ...["disponibilita","lista","strutture","contabilita"].map((id,i)=>
+        h("button",{key:id,className:"tab-btn"+(tab===id?" active":""),onClick:()=>setTab(id)},
+          ["🗓 Calendario","📋 Prenotaz.","🏨 Strutture","📊 Contabilità"][i]
+        )
+      )
+    ),
+
+    /* ════ GANTT ════ */
+    tab==="disponibilita"&&h("div",null,
+      h("div",{style:{background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"10px 14px"}},
+        /* nav mese */
+        h("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:8}},
+          h("button",{onClick:prev,style:{background:"#f3f4f6",border:"none",borderRadius:10,width:34,height:34,fontSize:20,cursor:"pointer"}},"‹"),
+          h("div",{style:{fontSize:14,fontWeight:800,color:"#111827",flex:1}},MONTHS[gM]," ",gY," — ",(()=>{const em=(gM+NUM_MONTHS-1);const ey=gY+Math.floor(em/12);const em2=em%12;return MONTHS[em2]+" "+ey;})()),
+          h("button",{onClick:next,style:{background:"#f3f4f6",border:"none",borderRadius:10,width:34,height:34,fontSize:20,cursor:"pointer"}},"›")
+        ),
+        /* cerca disponibilità */
+        h("div",{style:{background:"#f0fdf4",borderRadius:11,padding:"10px 12px",marginBottom:8,border:"1px solid #bbf7d0"}},
+          h("div",{style:{fontSize:11,fontWeight:700,color:"#065f46",marginBottom:6}},"🔍 Cerca disponibilità per periodo"),
+          h("div",{className:"g2",style:{marginBottom:8}},
+            h("div",null,h("div",{style:{fontSize:10,color:"#6b7280",marginBottom:3}},"Dal"),h("div",{className:"date-inp-wrap",onClick:e=>{const inp=e.currentTarget.querySelector('input');if(inp&&inp!==e.target){try{inp.showPicker();}catch(x){inp.focus();}}}},h("input",{type:"date",value:hlF,onChange:e=>{setHlF(e.target.value);if(hlT&&e.target.value>=hlT)setHlT("");}}))),
+            h("div",null,h("div",{style:{fontSize:10,color:"#6b7280",marginBottom:3}},"Al"),h("div",{className:"date-inp-wrap",onClick:e=>{const inp=e.currentTarget.querySelector('input');if(inp&&inp!==e.target){try{inp.showPicker();}catch(x){inp.focus();}}}},h("input",{type:"date",value:hlT,min:hlF||undefined,onChange:e=>setHlT(e.target.value)})))
+          ),
+          h("div",{style:{display:"flex",gap:7,flexWrap:"wrap",alignItems:"center"}},
+            h("select",{className:"sd",value:fTp,onChange:e=>setFTp(e.target.value)},h("option",null,"Tutte"),...TIPOLOGIE.map(t=>h("option",{key:t},t))),
+            h("select",{className:"sd",value:fLoc,onChange:e=>setFLoc(e.target.value)},
+              h("option",{value:"Tutte"},"Tutte le località"),
+              ...[...new Set(structs.map(s=>s.localita||"").filter(Boolean).sort((a,b)=>a.localeCompare(b,"it")))].map(l=>h("option",{key:l,value:l},"📍 "+l))
+            ),
+            h("select",{className:"sd",value:fPo,onChange:e=>setFPo(+e.target.value)},h("option",{value:0},"Qualsiasi posti"),...[2,4,6,8,10].map(n=>h("option",{key:n,value:n},">=",n," posti"))),
+            h("label",{style:{display:"flex",alignItems:"center",gap:5,fontSize:12,cursor:"pointer"}},h("input",{type:"checkbox",checked:fAn,onChange:e=>setFAn(e.target.checked),style:{accentColor:"#1d4ed8"}}),"🐾 Pet-friendly")
+          ),
+          freeSet.size>0&&h("div",{style:{marginTop:8,fontSize:12,color:"#065f46",fontWeight:700}},"✅ ",freeSet.size," strutture libere — calendario filtrato"),
+          hlF&&hlT&&hlF<hlT&&freeSet.size===0&&h("div",{style:{marginTop:8,fontSize:12,color:"#dc2626",fontWeight:700}},"❌ Nessuna struttura libera"),
+          (hlF||hlT)&&h("button",{onClick:()=>{setHlF("");setHlT("");},style:{marginTop:8,background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:8,padding:"6px 14px",fontSize:11,fontWeight:700,cursor:"pointer",width:"100%"}},"↺ Reset calendario — mostra tutte le strutture")
+        ),
+        h("input",{placeholder:"🔍 Filtra struttura...",value:gSrch,onChange:e=>setGSrch(e.target.value),style:{width:"100%",padding:"8px 12px",borderRadius:9,border:"1.5px solid #d1d5db",fontSize:13,outline:"none",background:"#f9fafb"}}),
+        h("div",{style:{display:"flex",gap:10,marginTop:6,flexWrap:"wrap"}},
+          ...[["#16a34a","Saldato"],["#f97316","Acconto parz."],["#eab308","Nessun acconto"],["#94a3b8","In attesa"],["#fde047","Rotazione (CI+CO)"],["#fef9c3","Solo checkout"],["rgba(250,204,21,.4)","Cercato"]].map(([c,l])=>
+            h("div",{key:l,style:{display:"flex",alignItems:"center",gap:4,fontSize:10,color:"#374151"}},h("div",{style:{width:12,height:12,borderRadius:3,background:c,border:"1px solid #e5e7eb"}}),l)
+          )
+        )
+      ),
+
+      /* SCROLLBAR TOP – specchio */
+      h("div",{ref:scrollTopRef,className:"gantt-scroll-top",onScroll:onScrollTop,style:{overflowX:"auto",overflowY:"hidden",borderBottom:"1px solid #e5e7eb"}},
+        h("div",{style:{height:6,width:tableW+"px",minWidth:tableW+"px"}})
+      ),
+
+      /* GANTT TABLE */
+      h("div",{ref:scrollBotRef,className:"gantt-outer",onScroll:onScrollBot},
+        h("table",{style:{borderCollapse:"collapse",width:tableW+"px",minWidth:tableW+"px",tableLayout:"fixed"}},
+          h("thead",null,
+            h("tr",null,
+              h("th",{style:{width:NAME_W,minWidth:NAME_W,background:"#0a1628",position:"sticky",left:0,zIndex:26,borderBottom:"1px solid #1a3258"}}),
+              ...monthSegs.map(seg=>h("th",{key:seg.key,colSpan:seg.count,style:{background:"#0a1628",color:"#93c5fd",fontSize:11,fontWeight:700,textAlign:"center",padding:"4px 2px",borderLeft:"2px solid #1d4ed8",borderBottom:"1px solid #1a3258",letterSpacing:.5}},seg.label))
+            ),
+            h("tr",null,
+              h("th",{style:{width:NAME_W,minWidth:NAME_W,background:"#0f2444",color:"#fff",textAlign:"left",padding:"6px 8px",fontSize:10,position:"sticky",left:0,zIndex:25,borderBottom:"2px solid #1a3258"}},"Struttura (",fSt.length,")"),
+              ...allDays.map(day=>{
+                const d=ds(day),isT=d===TODAY,hl=isHL(day),dow=day.getDay(),isW=dow===0||dow===6,isFirst=day.getDate()===1;
+                return h("th",{key:d,style:{width:COL_W,minWidth:COL_W,background:isT?"#1d4ed8":hl?"#ca8a04":isW?"#1e3a5f":"#1a3258",color:isT||hl?"#fff":isW?"#93c5fd":"#cbd5e1",fontSize:9,padding:"3px 0",textAlign:"center",fontWeight:isT?800:600,borderBottom:"2px solid #1a3258",borderLeft:isFirst?"2px solid #1d4ed8":"none"}},
+                  h("div",null,day.getDate()),h("div",{style:{fontSize:7,opacity:.7}},"DLMMGVS"[dow])
+                );
+              })
+            )
+          ),
+          h("tbody",null,...fSt.map((s,si)=>{
+            const isFree=freeSet.has(s.id),rb=isFree?"#f0fdf4":si%2===0?"#fff":"#f8fafc";
+            return h("tr",{key:s.id,style:{background:rb}},
+              h("td",{style:{position:"sticky",left:0,zIndex:10,background:rb,padding:"4px 8px",fontSize:10,fontWeight:700,color:isFree?"#065f46":"#1e3a5f",borderRight:"2px solid #e5e7eb",whiteSpace:"nowrap",cursor:"pointer",borderLeft:isFree?"3px solid #10b981":"3px solid transparent",width:NAME_W,minWidth:NAME_W},onClick:()=>setSelS(s)},
+                h("div",{style:{display:"flex",alignItems:"center",gap:3}},
+                  isFree&&h("span",null,"✅"),
+                  h("div",null,h("div",{style:{fontSize:10,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",maxWidth:92}},s.name),h("div",{style:{fontSize:8,color:"#6b7280",fontWeight:400}},s.tipologia," · ",s.posti,"p",(s.localita?" · 📍"+s.localita:""),s.animali?" 🐾":""))
+                )
+              ),
+              ...allDays.map(day=>{
+                const d=ds(day),bk=cellB(s.id,day),hl=isHL(day),isT=d===TODAY,isCI=bk&&d===bk.checkin,dow=day.getDay(),isFirst=day.getDate()===1;
+                /* check-in e check-out stesso giorno sulla struttura (rotazione) */
+                const isCO=!bk&&bookings.some(b=>b.structure===s.id&&b.status!=="Cancellata"&&b.checkout===d);
+                const isRot=isCI&&bookings.some(b=>b.structure===s.id&&b.status!=="Cancellata"&&b.checkout===d&&b.id!==bk?.id);
+                /* colore cella prenotazione */
+                let cellBg=null;
+                if(bk){
+                  if(bk.status==="Cancellata") cellBg="#f87171";
+                  else if(bk.status==="In attesa") cellBg="#94a3b8";
+                  else if(isSaldo(bk)) cellBg="#16a34a";           /* verde – saldato */
+                  else if((bk.acconti||[]).length===0) cellBg="#eab308"; /* giallo – nessun acconto */
+                  else cellBg="#f97316";                             /* arancione – acconto parziale */
+                }
+                return h("td",{key:d,style:{width:COL_W,minWidth:COL_W,height:32,padding:0,background:cellBg||(isRot?"#fde047":isCO?"#fef9c3":hl?"rgba(250,204,21,.25)":isT?"#eff6ff":dow===0||dow===6?"#f1f5f9":"transparent"),cursor:bk?"pointer":"default",borderLeft:isFirst?"2px solid #e0e7ff":isCI?"2px solid rgba(0,0,0,.25)":isT?"1px solid #bfdbfe":"1px solid #f1f5f9",verticalAlign:"middle",textAlign:"center"},onClick:()=>bk&&setSelB(bk)},
+                  isCI&&h("div",{style:{fontSize:7,color:"#fff",fontWeight:700,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",padding:"0 1px",maxWidth:COL_W-2,margin:"0 auto",textShadow:"0 1px 2px rgba(0,0,0,.3)"}},bk.client.split(" ")[0]),
+                  (!bk&&isCO)&&h("div",{style:{fontSize:8,color:"#92400e",fontWeight:800,lineHeight:1}},"↩")
+                )
+              })
+            )
+          }))
+        )
+      ),
+
+      /* strutture libere */
+      freeSet.size>0&&h("div",{style:{padding:"14px 16px"}},
+        h("div",{style:{fontWeight:800,fontSize:13,color:"#065f46",marginBottom:8}},"✅ Strutture libere nel periodo"),
+        h("div",{style:{display:"flex",flexDirection:"column",gap:7}},
+          ...[...freeSet].map(sid=>{const s=sMap[sid];if(!s)return null;
+            return h("div",{key:sid,style:{background:"#fff",borderRadius:11,padding:"10px 14px",border:"1.5px solid #bbf7d0",boxShadow:"0 1px 4px rgba(0,0,0,.06)"}},
+              h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
+                h("div",null,h("div",{style:{fontWeight:700,fontSize:13,color:"#065f46"}},"🏨 ",s.name),h("div",{style:{fontSize:11,color:"#6b7280"}},s.tipologia," · ",s.posti," posti",(s.localita?" · 📍"+s.localita:""),s.animali?" · 🐾":"")),
+                h("button",{onClick:()=>{setBForm({...emBk(structs),structure:sid,checkin:hlF,checkout:hlT});setEditBId(null);setShowBF(true);},style:{background:"#1d4ed8",color:"#fff",border:"none",borderRadius:8,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}},"＋ Prenota")
+              )
+            )
+          })
+        )
+      )
+    ),
+
+    /* ════ PRENOTAZIONI ════ */
+    tab==="lista"&&h("div",{style:{padding:"12px 16px"}},
+      h("div",{style:{background:"#fff",borderRadius:12,padding:"12px 14px",marginBottom:10,boxShadow:"0 1px 4px rgba(0,0,0,.06)"}},
+        h("input",{placeholder:"🔍  Cerca cliente, struttura...",value:lSrch,onChange:e=>setLSrch(e.target.value),style:{width:"100%",padding:"9px 12px",borderRadius:9,border:"1.5px solid #d1d5db",fontSize:13,outline:"none",background:"#f9fafb",marginBottom:8}}),
+        h("div",{style:{display:"flex",gap:7,flexWrap:"wrap",marginBottom:7}},
+          h("select",{className:"sd",value:lStruct,onChange:e=>setLStruct(e.target.value)},h("option",null,"Tutte le strutture"),...structs.map(s=>h("option",{key:s.id,value:s.id},s.name))),
+          h("select",{className:"sd",value:lSt,onChange:e=>setLSt(e.target.value)},h("option",null,"Tutti gli stati"),...STATUSES.map(s=>h("option",{key:s},s))),
+          h("select",{className:"sd",value:lPag,onChange:e=>setLPag(e.target.value)},
+            h("option",{value:"Tutti"},"Tutti i pagamenti"),
+            h("option",{value:"Saldato"},"✅ Saldato — pagamento completo"),
+            h("option",{value:"Parziale"},"⚠️ Parziale — almeno 1 acconto"),
+            h("option",{value:"Non pagato"},"❌ Non pagato — nessun acconto"),
+            h("option",{value:"Cancellata"},"🚫 Cancellata")
+          )
+        ),
+        h("div",{style:{display:"flex",gap:7,flexWrap:"wrap",alignItems:"center"}},
+          h("div",null,h("div",{style:{fontSize:9,color:"#6b7280",marginBottom:2}},"DATA ARRIVO"),h("div",{className:"date-inp-wrap"},h("input",{type:"date",value:lArrivo,onChange:e=>setLArrivo(e.target.value)}))),
+          h("div",null,h("div",{style:{fontSize:9,color:"#6b7280",marginBottom:2}},"PERIODO DAL"),h("div",{className:"date-inp-wrap"},h("input",{type:"date",value:lDateF,onChange:e=>{setLDateF(e.target.value);if(lDateT&&e.target.value>=lDateT)setLDateT("");}}))),
+          h("div",null,h("div",{style:{fontSize:9,color:"#6b7280",marginBottom:2}},"AL"),h("div",{className:"date-inp-wrap"},h("input",{type:"date",value:lDateT,min:lDateF||undefined,onChange:e=>setLDateT(e.target.value)}))),
+          hasF&&h("button",{onClick:resetFilt,style:{background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:8,padding:"6px 10px",fontSize:11,fontWeight:700,cursor:"pointer",marginTop:14}},"✕ Reset")
+        )
+      ),
+      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
+        h("div",{style:{fontSize:11,color:"#6b7280"}},filtBk.length," prenotazioni"),
+        h("button",{onClick:()=>printList(filtBk,structs,filtDesc()),style:{background:"#0f2444",color:"#fff",border:"none",borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}},"🖨️ Lista PDF")
+      ),
+      ...filtBk.map(b=>h(BCard,{key:b.id,b,sn:sN(b.structure),onClick:()=>setSelB(b)})),
+      filtBk.length===0&&h("div",{style:{textAlign:"center",padding:40,color:"#9ca3af",fontSize:13}},"Nessuna prenotazione trovata")
+    ),
+
+    /* ════ STRUTTURE ════ */
+    tab==="strutture"&&h("div",{style:{padding:"12px 16px"}},
+      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}},
+        h("div",{style:{fontSize:13,fontWeight:700,color:"#1e3a5f"}},structs.length," strutture"),
+        h("button",{onClick:newS,style:{background:"#6366f1",color:"#fff",border:"none",borderRadius:10,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}},"＋ Aggiungi")
+      ),
+      ...structs.map(s=>{
+        const nB=bookings.filter(b=>b.structure===s.id&&b.status!=="Cancellata").length;
+        return h("div",{key:s.id,className:"card",style:{borderLeft:"4px solid #6366f1"},onClick:()=>setSelS(s)},
+          h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}},
+            h("div",null,h("div",{style:{fontSize:15,fontWeight:800,color:"#111827"}},s.name),h("div",{style:{fontSize:12,color:"#6b7280"}},s.tipologia)),
+            h("div",{style:{display:"flex",gap:6,alignItems:"center"}},s.animali&&h("span",null,"🐾"),nB>0&&h("span",{className:"tag-b",style:{fontWeight:700}},nB," pren."))
+          ),
+          h("div",{style:{display:"flex",gap:10,fontSize:12,color:"#374151",marginBottom:6}},h("span",null,"🛏 ",s.camere," ",s.camere===1?"camera":"camere"),h("span",null,"👥 ",s.posti," posti"),s.animali&&h("span",{style:{color:"#059669",fontWeight:600}},"✅ Pet")),
+          s.servizi.length>0&&h("div",{style:{display:"flex",gap:5,flexWrap:"wrap",marginBottom:4}},...s.servizi.slice(0,5).map(sv=>h("span",{key:sv,className:"tag"},sv)),s.servizi.length>5&&h("span",{style:{fontSize:10,color:"#9ca3af"}},"+",s.servizi.length-5)),
+          s.note&&h("div",{style:{marginTop:4,fontSize:11,color:"#6b7280",fontStyle:"italic"}},"📝 ",s.note)
+        );
+      })
+    ),
+
+    /* ════ CONTABILITÀ ════ */
+    tab==="contabilita"&&h(ContabilitaTab,{bookings,structs,spese,setSpese}),
+
+    /* FAB */
+    h("div",{className:"fab-bar"},
+      h("button",{className:"fab",style:{background:"linear-gradient(135deg,#1d4ed8,#2563eb)",color:"#fff",boxShadow:"0 4px 16px rgba(29,78,216,.4)"},onClick:newB},"＋ Prenotazione"),
+      tab==="strutture"&&h("button",{className:"fab",style:{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",boxShadow:"0 4px 16px rgba(99,102,241,.4)"},onClick:newS},"＋ Struttura")
+    ),
+
+    /* MODALS */
+    selB&&h(Mod,{onClose:()=>setSelB(null)},h(BDetail,{b:selB,sn:sN(selB.structure),onEdit:()=>editB(selB),onDelete:()=>delB(selB.id),onPrint:()=>printBooking(selB,sN(selB.structure))})),
+    showBF&&h(Mod,{onClose:()=>setShowBF(false)},h(BForm,{form:bForm,setForm:setBForm,onSave:saveB,onClose:()=>setShowBF(false),isEdit:!!editBId,structs})),
+    selS&&!showSF&&h(Mod,{onClose:()=>setSelS(null)},h(SDetail,{s:selS,bookings,onEdit:()=>editS(selS),onDelete:()=>setConfDel(selS)})),
+    showSF&&h(Mod,{onClose:()=>setShowSF(false)},h(SForm,{form:sForm,setForm:setSForm,onSave:saveS,onClose:()=>setShowSF(false),isEdit:!!editSId})),
+    confDel&&h(Mod,{onClose:()=>setConfDel(null)},h(ConfDel,{s:confDel,bookings,onConfirm:()=>delS(confDel.id),onCancel:()=>setConfDel(null)})),
+
+    /* SETTINGS MODAL */
+    showSettings&&h(Mod,{onClose:()=>setShowSettings(false)},
+      h(Fragment,null,
+        h("div",{style:{fontSize:17,fontWeight:800,color:"#111827",marginBottom:6}},"⚙️ Impostazioni & Backup"),
+        h("div",{style:{fontSize:12,color:"#6b7280",marginBottom:18}},"Esporta o importa tutti i dati del gestionale."),
+
+        /* EXPORT */
+        h("div",{style:{background:"#f0fdf4",borderRadius:12,padding:"14px",marginBottom:12,border:"1.5px solid #bbf7d0"}},
+          h("div",{style:{fontSize:13,fontWeight:800,color:"#065f46",marginBottom:4}},"📥 Esporta backup"),
+          h("div",{style:{fontSize:11,color:"#6b7280",marginBottom:10}},"Scarica un file JSON con tutte le strutture, prenotazioni, pagamenti e spese."),
+          h("button",{
+            onClick:()=>{
+              const data={structs,bookings,spese,exportedAt:new Date().toISOString(),version:1};
+              const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+              const url=URL.createObjectURL(blob);
+              const a=document.createElement("a");
+              const today=new Date().toISOString().slice(0,10);
+              a.href=url;a.download="backup-prenotazioni-"+today+".json";
+              a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+            },
+            style:{width:"100%",background:"#059669",color:"#fff",border:"none",borderRadius:10,padding:"11px",fontSize:13,fontWeight:700,cursor:"pointer"}
+          },"⬇️ Scarica backup JSON")
+        ),
+
+        /* IMPORT */
+        h("div",{style:{background:"#fff7ed",borderRadius:12,padding:"14px",marginBottom:12,border:"1.5px solid #fed7aa"}},
+          h("div",{style:{fontSize:13,fontWeight:800,color:"#92400e",marginBottom:4}},"📤 Importa backup"),
+          h("div",{style:{fontSize:11,color:"#6b7280",marginBottom:10}},"Carica un file JSON precedentemente esportato. I dati attuali verranno sostituiti."),
+          h("label",{style:{display:"block",width:"100%",background:"#f97316",color:"#fff",border:"none",borderRadius:10,padding:"11px",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"center"}},
+            "📂 Seleziona file backup",
+            h("input",{
+              type:"file",accept:".json",style:{display:"none"},
+              onChange:e=>{
+                const file=e.target.files[0];if(!file)return;
+                const reader=new FileReader();
+                reader.onload=ev=>{
+                  try{
+                    const data=JSON.parse(ev.target.result);
+                    if(!data.structs||!data.bookings){alert("File non valido: struttura JSON non riconosciuta.");return;}
+                    if(!confirm("Sei sicuro? I dati attuali verranno sostituiti con quelli del backup del "+( data.exportedAt?new Date(data.exportedAt).toLocaleDateString("it-IT"):"file selezionato")+".")){return;}
+                    setStructs(data.structs);
+                    setBookings(data.bookings);
+                    setSpese(data.spese||[]);
+                    setShowSettings(false);
+                    alert("Backup ripristinato con successo! "+data.structs.length+" strutture, "+data.bookings.length+" prenotazioni.");
+                  }catch(err){alert("Errore nella lettura del file. Assicurati che sia un backup valido.");}
+                };
+                reader.readAsText(file);
+                e.target.value="";
+              }
+            })
+          )
+        ),
+
+        /* INFO */
+        h("div",{style:{background:"#f8fafc",borderRadius:10,padding:"12px",border:"1px solid #e5e7eb",marginBottom:14}},
+          h("div",{style:{fontSize:11,fontWeight:700,color:"#374151",marginBottom:6}},"📊 Dati attuali"),
+          h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}},
+            ...[
+              ["🏨 Strutture",structs.length],
+              ["📋 Prenotazioni",bookings.length],
+              ["💳 Pagamenti",bookings.reduce((a,b)=>a+(b.acconti||[]).length,0)],
+              ["🔧 Spese",(spese||[]).length],
+            ].map(([l,v])=>h("div",{key:l,style:{background:"#fff",borderRadius:8,padding:"8px 10px",textAlign:"center",border:"1px solid #e5e7eb"}},
+              h("div",{style:{fontSize:16,fontWeight:800,color:"#1d4ed8"}},v),
+              h("div",{style:{fontSize:10,color:"#6b7280"}},l)
+            ))
+          )
+        ),
+
+        h("button",{onClick:()=>setShowSettings(false),style:{width:"100%",background:"#f3f4f6",color:"#374151",border:"none",borderRadius:10,padding:"11px",fontSize:13,fontWeight:600,cursor:"pointer"}},"Chiudi")
+      )
+    )
+  );
+}
+
+/* ── AVVIO: carica Firebase poi monta React ── */
+var db=null;
+var _fbUpdating=false;
+
+function mountApp(){
+  ReactDOM.createRoot(document.getElementById("app")).render(h(App,null));
+}
+
+function initFirebase(){
+  try{
+    var cfg={apiKey:"AIzaSyDYg-dU0rZsWgTip_nkYJ0UyUs1dMIxbKw",authDomain:"zoom-gestionale.firebaseapp.com",projectId:"zoom-gestionale",storageBucket:"zoom-gestionale.firebasestorage.app",messagingSenderId:"1067367230666",appId:"1:1067367230666:web:72692568e185e254679833"};
+    if(!firebase.apps.length){firebase.initializeApp(cfg);}
+    db=firebase.firestore();
+    db.enablePersistence({synchronizeTabs:true}).catch(function(){});
+    console.log("Firebase OK");
+  }catch(e){
+    console.warn("Firebase init error:",e);
+    db=null;
+  }
+  mountApp();
+}
+
+function loadScript(src,cb){
+  var s=document.createElement("script");
+  s.src=src;
+  s.onload=cb;
+  s.onerror=function(){console.warn("Script load failed:",src);cb();};
+  document.head.appendChild(s);
+}
+
+loadScript("https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-app.js",function(){
+  loadScript("https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-firestore.js",function(){
+    initFirebase();
+  });
+});
+</script>
+</body>
+</html>
